@@ -1,5 +1,6 @@
-# web-doom
+# web-doom #
 
-> Doom game compiled for web with emscripten
+*Doom game compiled for web with emscripten*
 
-Work in progress...
+
+> Work in progress...
