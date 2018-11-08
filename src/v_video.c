@@ -1,1019 +1,1037 @@
-//
-// Copyright(C) 1993-1996 Id Software, Inc.
-// Copyright(C) 1993-2008 Raven Software
-// Copyright(C) 2005-2014 Simon Howard
-//
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either version 2
-// of the License, or (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// DESCRIPTION:
-//	Gamma correction LUT stuff.
-//	Functions to draw patches (by post) directly to screen.
-//	Functions to blit a block to the screen.
-//
+/* Emacs style mode select   -*- C++ -*-
+ *-----------------------------------------------------------------------------
+ *
+ *
+ *  PrBoom: a Doom port merged with LxDoom and LSDLDoom
+ *  based on BOOM, a modified and improved DOOM engine
+ *  Copyright (C) 1999 by
+ *  id Software, Chi Hoang, Lee Killough, Jim Flynn, Rand Phares, Ty Halderman
+ *  Copyright (C) 1999-2000 by
+ *  Jess Haas, Nicolas Kalkhof, Colin Phipps, Florian Schulze
+ *  Copyright 2005, 2006 by
+ *  Florian Schulze, Colin Phipps, Neil Stevens, Andrey Budko
+ *
+ *  This program is free software; you can redistribute it and/or
+ *  modify it under the terms of the GNU General Public License
+ *  as published by the Free Software Foundation; either version 2
+ *  of the License, or (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+ *  02111-1307, USA.
+ *
+ * DESCRIPTION:
+ *  Gamma correction LUT stuff.
+ *  Color range translation support
+ *  Functions to draw patches (by post) directly to screen.
+ *  Functions to blit a block to the screen.
+ *
+ *-----------------------------------------------------------------------------
+ */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
-
-#include "i_system.h"
-
-#include "doomtype.h"
-
-#include "deh_str.h"
-#include "i_input.h"
-#include "i_swap.h"
-#include "i_video.h"
+#include "doomdef.h"
+#include "r_main.h"
+#include "r_draw.h"
 #include "m_bbox.h"
-#include "m_misc.h"
+#include "w_wad.h"   /* needed for color translation lump lookup */
 #include "v_video.h"
-#include "w_wad.h"
-#include "z_zone.h"
+#include "i_video.h"
+#include "r_filter.h"
+#include "lprintf.h"
 
-#include "../config.h"
-#ifdef HAVE_LIBPNG
-#include "png.h"
-#endif
+// Each screen is [SCREENWIDTH*SCREENHEIGHT];
+screeninfo_t screens[NUM_SCREENS];
 
-// TODO: There are separate RANGECHECK defines for different games, but this
-// is common code. Fix this.
-#define RANGECHECK
+/* jff 4/24/98 initialize this at runtime */
+const byte *colrngs[CR_LIMIT];
 
-// Blending table used for fuzzpatch, etc.
-// Only used in Heretic/Hexen
+int usegamma;
 
-byte *tinttable = NULL;
+/*
+ * V_InitColorTranslation
+ *
+ * Loads the color translation tables from predefined lumps at game start
+ * No return
+ *
+ * Used for translating text colors from the red palette range
+ * to other colors. The first nine entries can be used to dynamically
+ * switch the output of text color thru the HUlib_drawText routine
+ * by embedding ESCn in the text to obtain color n. Symbols for n are
+ * provided in v_video.h.
+ *
+ * cphipps - constness of crdef_t stuff fixed
+ */
 
-// villsa [STRIFE] Blending table used for Strife
-byte *xlatab = NULL;
+typedef struct {
+  const char *name;
+  const byte **map;
+} crdef_t;
 
-// The screen buffer that the v_video.c code draws to.
+// killough 5/2/98: table-driven approach
+static const crdef_t crdefs[] = {
+  {"CRBRICK",  &colrngs[CR_BRICK ]},
+  {"CRTAN",    &colrngs[CR_TAN   ]},
+  {"CRGRAY",   &colrngs[CR_GRAY  ]},
+  {"CRGREEN",  &colrngs[CR_GREEN ]},
+  {"CRBROWN",  &colrngs[CR_BROWN ]},
+  {"CRGOLD",   &colrngs[CR_GOLD  ]},
+  {"CRRED",    &colrngs[CR_RED   ]},
+  {"CRBLUE",   &colrngs[CR_BLUE  ]},
+  {"CRORANGE", &colrngs[CR_ORANGE]},
+  {"CRYELLOW", &colrngs[CR_YELLOW]},
+  {"CRBLUE2",  &colrngs[CR_BLUE2]},
+  {NULL}
+};
 
-static pixel_t *dest_screen = NULL;
-
-int dirtybox[4];
-
-// haleyjd 08/28/10: clipping callback function for patches.
-// This is needed for Chocolate Strife, which clips patches to the screen.
-static vpatchclipfunc_t patchclip_callback = NULL;
-
-//
-// V_MarkRect
-//
-void V_MarkRect(int x, int y, int width, int height)
+// killough 5/2/98: tiny engine driven by table above
+void V_InitColorTranslation(void)
 {
-    // If we are temporarily using an alternate screen, do not
-    // affect the update box.
-
-    if (dest_screen == I_VideoBuffer)
-    {
-        M_AddToBox (dirtybox, x, y);
-        M_AddToBox (dirtybox, x + width-1, y + height-1);
-    }
+  register const crdef_t *p;
+  for (p=crdefs; p->name; p++)
+    *p->map = W_CacheLumpName(p->name);
 }
-
 
 //
 // V_CopyRect
 //
-void V_CopyRect(int srcx, int srcy, pixel_t *source,
-                int width, int height,
-                int destx, int desty)
+// Copies a source rectangle in a screen buffer to a destination
+// rectangle in another screen buffer. Source origin in srcx,srcy,
+// destination origin in destx,desty, common size in width and height.
+// Source buffer specfified by srcscrn, destination buffer by destscrn.
+//
+// Marks the destination rectangle on the screen dirty.
+//
+// No return.
+//
+static void FUNC_V_CopyRect(int srcx, int srcy, int srcscrn, int width,
+                int height, int destx, int desty, int destscrn,
+                enum patch_translation_e flags)
 {
-    pixel_t *src;
-    pixel_t *dest;
+  byte *src;
+  byte *dest;
+
+  if (flags & VPT_STRETCH)
+  {
+    srcx=srcx*SCREENWIDTH/320;
+    srcy=srcy*SCREENHEIGHT/200;
+    width=width*SCREENWIDTH/320;
+    height=height*SCREENHEIGHT/200;
+    destx=destx*SCREENWIDTH/320;
+    desty=desty*SCREENHEIGHT/200;
+  }
 
 #ifdef RANGECHECK
-    if (srcx < 0
-     || srcx + width > SCREENWIDTH
-     || srcy < 0
-     || srcy + height > SCREENHEIGHT
-     || destx < 0
-     || destx + width > SCREENWIDTH
-     || desty < 0
-     || desty + height > SCREENHEIGHT)
-    {
-        I_Error ("Bad V_CopyRect");
-    }
+  if (srcx<0
+      ||srcx+width >SCREENWIDTH
+      || srcy<0
+      || srcy+height>SCREENHEIGHT
+      ||destx<0||destx+width >SCREENWIDTH
+      || desty<0
+      || desty+height>SCREENHEIGHT)
+    I_Error ("V_CopyRect: Bad arguments");
 #endif
 
-    V_MarkRect(destx, desty, width, height);
+  src = screens[srcscrn].data+screens[srcscrn].byte_pitch*srcy+srcx*V_GetPixelDepth();
+  dest = screens[destscrn].data+screens[destscrn].byte_pitch*desty+destx*V_GetPixelDepth();
 
-    src = source + SCREENWIDTH * srcy + srcx;
-    dest = dest_screen + SCREENWIDTH * desty + destx;
-
-    for ( ; height>0 ; height--)
+  for ( ; height>0 ; height--)
     {
-        memcpy(dest, src, width * sizeof(*dest));
-        src += SCREENWIDTH;
-        dest += SCREENWIDTH;
+      memcpy (dest, src, width*V_GetPixelDepth());
+      src += screens[srcscrn].byte_pitch;
+      dest += screens[destscrn].byte_pitch;
     }
 }
 
-//
-// V_SetPatchClipCallback
-//
-// haleyjd 08/28/10: Added for Strife support.
-// By calling this function, you can setup runtime error checking for patch
-// clipping. Strife never caused errors by drawing patches partway off-screen.
-// Some versions of vanilla DOOM also behaved differently than the default
-// implementation, so this could possibly be extended to those as well for
-// accurate emulation.
-//
-void V_SetPatchClipCallback(vpatchclipfunc_t func)
+/*
+ * V_DrawBackground tiles a 64x64 patch over the entire screen, providing the
+ * background for the Help and Setup screens, and plot text betwen levels.
+ * cphipps - used to have M_DrawBackground, but that was used the framebuffer
+ * directly, so this is my code from the equivalent function in f_finale.c
+ */
+static void FUNC_V_DrawBackground(const char* flatname, int scrn)
 {
-    patchclip_callback = func;
-}
+  /* erase the entire screen to a tiled background */
+  const byte *src;
+  int         x,y;
+  int         width,height;
+  int         lump;
 
-//
-// V_DrawPatch
-// Masks a column based masked pic to the screen.
-//
+  // killough 4/17/98:
+  src = W_CacheLumpNum(lump = firstflat + R_FlatNumForName(flatname));
 
-void V_DrawPatch(int x, int y, patch_t *patch)
-{
-    int count;
-    int col;
-    column_t *column;
-    pixel_t *desttop;
-    pixel_t *dest;
-    byte *source;
-    int w;
+  /* V_DrawBlock(0, 0, scrn, 64, 64, src, 0); */
+  width = height = 64;
+  if (V_GetMode() == VID_MODE8) {
+    byte *dest = screens[scrn].data;
 
-    y -= SHORT(patch->topoffset);
-    x -= SHORT(patch->leftoffset);
-
-    // haleyjd 08/28/10: Strife needs silent error checking here.
-    if(patchclip_callback)
-    {
-        if(!patchclip_callback(patch, x, y))
-            return;
+    while (height--) {
+      memcpy (dest, src, width);
+      src += width;
+      dest += screens[scrn].byte_pitch;
     }
+  } else if (V_GetMode() == VID_MODE15) {
+    unsigned short *dest = (unsigned short *)screens[scrn].data;
 
-#ifdef RANGECHECK
-    if (x < 0
-     || x + SHORT(patch->width) > SCREENWIDTH
-     || y < 0
-     || y + SHORT(patch->height) > SCREENHEIGHT)
-    {
-        I_Error("Bad V_DrawPatch");
+    while (height--) {
+      int i;
+      for (i=0; i<width; i++) {
+        dest[i] = VID_PAL15(src[i], VID_COLORWEIGHTMASK);
+      }
+      src += width;
+      dest += screens[scrn].short_pitch;
     }
-#endif
+  } else if (V_GetMode() == VID_MODE16) {
+    unsigned short *dest = (unsigned short *)screens[scrn].data;
 
-    V_MarkRect(x, y, SHORT(patch->width), SHORT(patch->height));
-
-    col = 0;
-    desttop = dest_screen + y * SCREENWIDTH + x;
-
-    w = SHORT(patch->width);
-
-    for ( ; col<w ; x++, col++, desttop++)
-    {
-        column = (column_t *)((byte *)patch + LONG(patch->columnofs[col]));
-
-        // step through the posts in a column
-        while (column->topdelta != 0xff)
-        {
-            source = (byte *)column + 3;
-            dest = desttop + column->topdelta*SCREENWIDTH;
-            count = column->length;
-
-            while (count--)
-            {
-                *dest = *source++;
-                dest += SCREENWIDTH;
-            }
-            column = (column_t *)((byte *)column + column->length + 4);
-        }
+    while (height--) {
+      int i;
+      for (i=0; i<width; i++) {
+        dest[i] = VID_PAL16(src[i], VID_COLORWEIGHTMASK);
+      }
+      src += width;
+      dest += screens[scrn].short_pitch;
     }
-}
+  } else if (V_GetMode() == VID_MODE32) {
+    unsigned int *dest = (unsigned int *)screens[scrn].data;
 
-//
-// V_DrawPatchFlipped
-// Masks a column based masked pic to the screen.
-// Flips horizontally, e.g. to mirror face.
-//
-
-void V_DrawPatchFlipped(int x, int y, patch_t *patch)
-{
-    int count;
-    int col;
-    column_t *column;
-    pixel_t *desttop;
-    pixel_t *dest;
-    byte *source;
-    int w;
-
-    y -= SHORT(patch->topoffset);
-    x -= SHORT(patch->leftoffset);
-
-    // haleyjd 08/28/10: Strife needs silent error checking here.
-    if(patchclip_callback)
-    {
-        if(!patchclip_callback(patch, x, y))
-            return;
+    while (height--) {
+      int i;
+      for (i=0; i<width; i++) {
+        dest[i] = VID_PAL32(src[i], VID_COLORWEIGHTMASK);
+      }
+      src += width;
+      dest += screens[scrn].int_pitch;
     }
-
-#ifdef RANGECHECK
-    if (x < 0
-     || x + SHORT(patch->width) > SCREENWIDTH
-     || y < 0
-     || y + SHORT(patch->height) > SCREENHEIGHT)
-    {
-        I_Error("Bad V_DrawPatchFlipped");
-    }
-#endif
-
-    V_MarkRect (x, y, SHORT(patch->width), SHORT(patch->height));
-
-    col = 0;
-    desttop = dest_screen + y * SCREENWIDTH + x;
-
-    w = SHORT(patch->width);
-
-    for ( ; col<w ; x++, col++, desttop++)
-    {
-        column = (column_t *)((byte *)patch + LONG(patch->columnofs[w-1-col]));
-
-        // step through the posts in a column
-        while (column->topdelta != 0xff )
-        {
-            source = (byte *)column + 3;
-            dest = desttop + column->topdelta*SCREENWIDTH;
-            count = column->length;
-
-            while (count--)
-            {
-                *dest = *source++;
-                dest += SCREENWIDTH;
-            }
-            column = (column_t *)((byte *)column + column->length + 4);
-        }
-    }
-}
-
-
-
-//
-// V_DrawPatchDirect
-// Draws directly to the screen on the pc.
-//
-
-void V_DrawPatchDirect(int x, int y, patch_t *patch)
-{
-    V_DrawPatch(x, y, patch);
-}
-
-//
-// V_DrawTLPatch
-//
-// Masks a column based translucent masked pic to the screen.
-//
-
-void V_DrawTLPatch(int x, int y, patch_t * patch)
-{
-    int count, col;
-    column_t *column;
-    pixel_t *desttop, *dest;
-    byte *source;
-    int w;
-
-    y -= SHORT(patch->topoffset);
-    x -= SHORT(patch->leftoffset);
-
-    if (x < 0
-     || x + SHORT(patch->width) > SCREENWIDTH
-     || y < 0
-     || y + SHORT(patch->height) > SCREENHEIGHT)
-    {
-        I_Error("Bad V_DrawTLPatch");
-    }
-
-    col = 0;
-    desttop = dest_screen + y * SCREENWIDTH + x;
-
-    w = SHORT(patch->width);
-    for (; col < w; x++, col++, desttop++)
-    {
-        column = (column_t *) ((byte *) patch + LONG(patch->columnofs[col]));
-
-        // step through the posts in a column
-
-        while (column->topdelta != 0xff)
-        {
-            source = (byte *) column + 3;
-            dest = desttop + column->topdelta * SCREENWIDTH;
-            count = column->length;
-
-            while (count--)
-            {
-                *dest = tinttable[((*dest) << 8) + *source++];
-                dest += SCREENWIDTH;
-            }
-            column = (column_t *) ((byte *) column + column->length + 4);
-        }
-    }
-}
-
-//
-// V_DrawXlaPatch
-//
-// villsa [STRIFE] Masks a column based translucent masked pic to the screen.
-//
-
-void V_DrawXlaPatch(int x, int y, patch_t * patch)
-{
-    int count, col;
-    column_t *column;
-    pixel_t *desttop, *dest;
-    byte *source;
-    int w;
-
-    y -= SHORT(patch->topoffset);
-    x -= SHORT(patch->leftoffset);
-
-    if(patchclip_callback)
-    {
-        if(!patchclip_callback(patch, x, y))
-            return;
-    }
-
-    col = 0;
-    desttop = dest_screen + y * SCREENWIDTH + x;
-
-    w = SHORT(patch->width);
-    for(; col < w; x++, col++, desttop++)
-    {
-        column = (column_t *) ((byte *) patch + LONG(patch->columnofs[col]));
-
-        // step through the posts in a column
-
-        while(column->topdelta != 0xff)
-        {
-            source = (byte *) column + 3;
-            dest = desttop + column->topdelta * SCREENWIDTH;
-            count = column->length;
-
-            while(count--)
-            {
-                *dest = xlatab[*dest + ((*source) << 8)];
-                source++;
-                dest += SCREENWIDTH;
-            }
-            column = (column_t *) ((byte *) column + column->length + 4);
-        }
-    }
-}
-
-//
-// V_DrawAltTLPatch
-//
-// Masks a column based translucent masked pic to the screen.
-//
-
-void V_DrawAltTLPatch(int x, int y, patch_t * patch)
-{
-    int count, col;
-    column_t *column;
-    pixel_t *desttop, *dest;
-    byte *source;
-    int w;
-
-    y -= SHORT(patch->topoffset);
-    x -= SHORT(patch->leftoffset);
-
-    if (x < 0
-     || x + SHORT(patch->width) > SCREENWIDTH
-     || y < 0
-     || y + SHORT(patch->height) > SCREENHEIGHT)
-    {
-        I_Error("Bad V_DrawAltTLPatch");
-    }
-
-    col = 0;
-    desttop = dest_screen + y * SCREENWIDTH + x;
-
-    w = SHORT(patch->width);
-    for (; col < w; x++, col++, desttop++)
-    {
-        column = (column_t *) ((byte *) patch + LONG(patch->columnofs[col]));
-
-        // step through the posts in a column
-
-        while (column->topdelta != 0xff)
-        {
-            source = (byte *) column + 3;
-            dest = desttop + column->topdelta * SCREENWIDTH;
-            count = column->length;
-
-            while (count--)
-            {
-                *dest = tinttable[((*dest) << 8) + *source++];
-                dest += SCREENWIDTH;
-            }
-            column = (column_t *) ((byte *) column + column->length + 4);
-        }
-    }
-}
-
-//
-// V_DrawShadowedPatch
-//
-// Masks a column based masked pic to the screen.
-//
-
-void V_DrawShadowedPatch(int x, int y, patch_t *patch)
-{
-    int count, col;
-    column_t *column;
-    pixel_t *desttop, *dest;
-    byte *source;
-    pixel_t *desttop2, *dest2;
-    int w;
-
-    y -= SHORT(patch->topoffset);
-    x -= SHORT(patch->leftoffset);
-
-    if (x < 0
-     || x + SHORT(patch->width) > SCREENWIDTH
-     || y < 0
-     || y + SHORT(patch->height) > SCREENHEIGHT)
-    {
-        I_Error("Bad V_DrawShadowedPatch");
-    }
-
-    col = 0;
-    desttop = dest_screen + y * SCREENWIDTH + x;
-    desttop2 = dest_screen + (y + 2) * SCREENWIDTH + x + 2;
-
-    w = SHORT(patch->width);
-    for (; col < w; x++, col++, desttop++, desttop2++)
-    {
-        column = (column_t *) ((byte *) patch + LONG(patch->columnofs[col]));
-
-        // step through the posts in a column
-
-        while (column->topdelta != 0xff)
-        {
-            source = (byte *) column + 3;
-            dest = desttop + column->topdelta * SCREENWIDTH;
-            dest2 = desttop2 + column->topdelta * SCREENWIDTH;
-            count = column->length;
-
-            while (count--)
-            {
-                *dest2 = tinttable[((*dest2) << 8)];
-                dest2 += SCREENWIDTH;
-                *dest = *source++;
-                dest += SCREENWIDTH;
-
-            }
-            column = (column_t *) ((byte *) column + column->length + 4);
-        }
-    }
-}
-
-//
-// Load tint table from TINTTAB lump.
-//
-
-void V_LoadTintTable(void)
-{
-    tinttable = W_CacheLumpName("TINTTAB", PU_STATIC);
-}
-
-//
-// V_LoadXlaTable
-//
-// villsa [STRIFE] Load xla table from XLATAB lump.
-//
-
-void V_LoadXlaTable(void)
-{
-    xlatab = W_CacheLumpName("XLATAB", PU_STATIC);
-}
-
-//
-// V_DrawBlock
-// Draw a linear block of pixels into the view buffer.
-//
-
-void V_DrawBlock(int x, int y, int width, int height, pixel_t *src)
-{
-    pixel_t *dest;
-
-#ifdef RANGECHECK
-    if (x < 0
-     || x + width >SCREENWIDTH
-     || y < 0
-     || y + height > SCREENHEIGHT)
-    {
-	I_Error ("Bad V_DrawBlock");
-    }
-#endif
-
-    V_MarkRect (x, y, width, height);
-
-    dest = dest_screen + y * SCREENWIDTH + x;
-
-    while (height--)
-    {
-	memcpy (dest, src, width * sizeof(*dest));
-	src += width;
-	dest += SCREENWIDTH;
-    }
-}
-
-void V_DrawFilledBox(int x, int y, int w, int h, int c)
-{
-    pixel_t *buf, *buf1;
-    int x1, y1;
-
-    buf = I_VideoBuffer + SCREENWIDTH * y + x;
-
-    for (y1 = 0; y1 < h; ++y1)
-    {
-        buf1 = buf;
-
-        for (x1 = 0; x1 < w; ++x1)
-        {
-            *buf1++ = c;
-        }
-
-        buf += SCREENWIDTH;
-    }
-}
-
-void V_DrawHorizLine(int x, int y, int w, int c)
-{
-    pixel_t *buf;
-    int x1;
-
-    buf = I_VideoBuffer + SCREENWIDTH * y + x;
-
-    for (x1 = 0; x1 < w; ++x1)
-    {
-        *buf++ = c;
-    }
-}
-
-void V_DrawVertLine(int x, int y, int h, int c)
-{
-    pixel_t *buf;
-    int y1;
-
-    buf = I_VideoBuffer + SCREENWIDTH * y + x;
-
-    for (y1 = 0; y1 < h; ++y1)
-    {
-        *buf = c;
-        buf += SCREENWIDTH;
-    }
-}
-
-void V_DrawBox(int x, int y, int w, int h, int c)
-{
-    V_DrawHorizLine(x, y, w, c);
-    V_DrawHorizLine(x, y+h-1, w, c);
-    V_DrawVertLine(x, y, h, c);
-    V_DrawVertLine(x+w-1, y, h, c);
-}
-
-//
-// Draw a "raw" screen (lump containing raw data to blit directly
-// to the screen)
-//
-
-void V_DrawRawScreen(pixel_t *raw)
-{
-    memcpy(dest_screen, raw, SCREENWIDTH * SCREENHEIGHT * sizeof(*dest_screen));
+  }
+  /* end V_DrawBlock */
+
+  for (y=0 ; y<SCREENHEIGHT ; y+=64)
+    for (x=y ? 0 : 64; x<SCREENWIDTH ; x+=64)
+      V_CopyRect(0, 0, scrn, ((SCREENWIDTH-x) < 64) ? (SCREENWIDTH-x) : 64,
+     ((SCREENHEIGHT-y) < 64) ? (SCREENHEIGHT-y) : 64, x, y, scrn, VPT_NONE);
+  W_UnlockLumpNum(lump);
 }
 
 //
 // V_Init
 //
+// Allocates the 4 full screen buffers in low DOS memory
+// No return
+//
+
 void V_Init (void)
 {
-    // no-op!
-    // There used to be separate screens that could be drawn to; these are
-    // now handled in the upper layers.
-}
+  int  i;
 
-// Set the buffer that the code draws to.
-
-void V_UseBuffer(pixel_t *buffer)
-{
-    dest_screen = buffer;
-}
-
-// Restore screen buffer to the i_video screen buffer.
-
-void V_RestoreBuffer(void)
-{
-    dest_screen = I_VideoBuffer;
+  // reset the all
+  for (i = 0; i<NUM_SCREENS; i++) {
+    screens[i].data = NULL;
+    screens[i].not_on_heap = false;
+    screens[i].width = 0;
+    screens[i].height = 0;
+    screens[i].byte_pitch = 0;
+    screens[i].short_pitch = 0;
+    screens[i].int_pitch = 0;
+  }
 }
 
 //
-// SCREEN SHOTS
+// V_DrawMemPatch
 //
-
-typedef PACKED_STRUCT (
-{
-    char		manufacturer;
-    char		version;
-    char		encoding;
-    char		bits_per_pixel;
-
-    unsigned short	xmin;
-    unsigned short	ymin;
-    unsigned short	xmax;
-    unsigned short	ymax;
-
-    unsigned short	hres;
-    unsigned short	vres;
-
-    unsigned char	palette[48];
-
-    char		reserved;
-    char		color_planes;
-    unsigned short	bytes_per_line;
-    unsigned short	palette_type;
-
-    char		filler[58];
-    unsigned char	data;		// unbounded
-}) pcx_t;
-
-
+// CPhipps - unifying patch drawing routine, handles all cases and combinations
+//  of stretching, flipping and translating
 //
-// WritePCXfile
+// This function is big, hopefully not too big that gcc can't optimise it well.
+// In fact it packs pretty well, there is no big performance lose for all this merging;
+// the inner loops themselves are just the same as they always were
+// (indeed, laziness of the people who wrote the 'clones' of the original V_DrawPatch
+//  means that their inner loops weren't so well optimised, so merging code may even speed them).
 //
-
-void WritePCXfile(char *filename, pixel_t *data,
-                  int width, int height,
-                  byte *palette)
+static void V_DrawMemPatch(int x, int y, int scrn, const rpatch_t *patch,
+        int cm, enum patch_translation_e flags)
 {
-    int		i;
-    int		length;
-    pcx_t*	pcx;
-    byte*	pack;
+  const byte *trans;
 
-    pcx = Z_Malloc (width*height*2+1000, PU_STATIC, NULL);
+  if (cm<CR_LIMIT)
+    trans=colrngs[cm];
+  else
+    trans=translationtables + 256*((cm-CR_LIMIT)-1);
+  y -= patch->topoffset;
+  x -= patch->leftoffset;
 
-    pcx->manufacturer = 0x0a;		// PCX id
-    pcx->version = 5;			// 256 color
-    pcx->encoding = 1;			// uncompressed
-    pcx->bits_per_pixel = 8;		// 256 color
-    pcx->xmin = 0;
-    pcx->ymin = 0;
-    pcx->xmax = SHORT(width-1);
-    pcx->ymax = SHORT(height-1);
-    pcx->hres = SHORT(1);
-    pcx->vres = SHORT(1);
-    memset (pcx->palette,0,sizeof(pcx->palette));
-    pcx->reserved = 0;                  // PCX spec: reserved byte must be zero
-    pcx->color_planes = 1;		// chunky image
-    pcx->bytes_per_line = SHORT(width);
-    pcx->palette_type = SHORT(2);	// not a grey scale
-    memset (pcx->filler,0,sizeof(pcx->filler));
+  // CPhipps - auto-no-stretch if not high-res
+  if (flags & VPT_STRETCH)
+    if ((SCREENWIDTH==320) && (SCREENHEIGHT==200))
+      flags &= ~VPT_STRETCH;
 
-    // pack the image
-    pack = &pcx->data;
+  // CPhipps - null translation pointer => no translation
+  if (!trans)
+    flags &= ~VPT_TRANS;
 
-    for (i=0 ; i<width*height ; i++)
-    {
-	if ( (*data & 0xc0) != 0xc0)
-	    *pack++ = *data++;
-	else
-	{
-	    *pack++ = 0xc1;
-	    *pack++ = *data++;
-	}
+  if (V_GetMode() == VID_MODE8 && !(flags & VPT_STRETCH)) {
+    int             col;
+    byte           *desttop = screens[scrn].data+y*screens[scrn].byte_pitch+x*V_GetPixelDepth();
+    unsigned int    w = patch->width;
+
+    if (y<0 || y+patch->height > ((flags & VPT_STRETCH) ? 200 :  SCREENHEIGHT)) {
+      // killough 1/19/98: improved error message:
+      lprintf(LO_WARN, "V_DrawMemPatch8: Patch (%d,%d)-(%d,%d) exceeds LFB in vertical direction (horizontal is clipped)\n"
+              "Bad V_DrawMemPatch8 (flags=%u)", x, y, x+patch->width, y+patch->height, flags);
+      return;
     }
 
-    // write the palette
-    *pack++ = 0x0c;	// palette ID byte
-    for (i=0 ; i<768 ; i++)
-	*pack++ = *palette++;
+    w--; // CPhipps - note: w = width-1 now, speeds up flipping
 
-    // write output file
-    length = pack - (byte *)pcx;
-    M_WriteFile (filename, pcx, length);
+    for (col=0 ; (unsigned int)col<=w ; desttop++, col++, x++) {
+      int i;
+      const int colindex = (flags & VPT_FLIP) ? (w - col) : (col);
+      const rcolumn_t *column = R_GetPatchColumn(patch, colindex);
 
-    Z_Free (pcx);
-}
+      if (x < 0)
+        continue;
+      if (x >= SCREENWIDTH)
+        break;
 
-#ifdef HAVE_LIBPNG
-//
-// WritePNGfile
-//
+      // step through the posts in a column
+      for (i=0; i<column->numPosts; i++) {
+        const rpost_t *post = &column->posts[i];
+        // killough 2/21/98: Unrolled and performance-tuned
 
-static void error_fn(png_structp p, png_const_charp s)
-{
-    printf("libpng error: %s\n", s);
-}
+        const byte *source = column->pixels + post->topdelta;
+        byte *dest = desttop + post->topdelta*screens[scrn].byte_pitch;
+        int count = post->length;
 
-static void warning_fn(png_structp p, png_const_charp s)
-{
-    printf("libpng warning: %s\n", s);
-}
-
-void WritePNGfile(char *filename, pixel_t *data,
-                  int width, int height,
-                  byte *palette)
-{
-    png_structp ppng;
-    png_infop pinfo;
-    png_colorp pcolor;
-    FILE *handle;
-    int i, j;
-    int w_factor, h_factor;
-    byte *rowbuf;
-
-    if (aspect_ratio_correct)
-    {
-        // scale up to accommodate aspect ratio correction
-        w_factor = 5;
-        h_factor = 6;
-
-        width *= w_factor;
-        height *= h_factor;
+        if (!(flags & VPT_TRANS)) {
+          if ((count-=4)>=0)
+            do {
+              register byte s0,s1;
+              s0 = source[0];
+              s1 = source[1];
+              dest[0] = s0;
+              dest[screens[scrn].byte_pitch] = s1;
+              dest += screens[scrn].byte_pitch*2;
+              s0 = source[2];
+              s1 = source[3];
+              source += 4;
+              dest[0] = s0;
+              dest[screens[scrn].byte_pitch] = s1;
+              dest += screens[scrn].byte_pitch*2;
+            } while ((count-=4)>=0);
+          if (count+=4)
+            do {
+              *dest = *source++;
+              dest += screens[scrn].byte_pitch;
+            } while (--count);
+        } else {
+          // CPhipps - merged translation code here
+          if ((count-=4)>=0)
+            do {
+              register byte s0,s1;
+              s0 = source[0];
+              s1 = source[1];
+              s0 = trans[s0];
+              s1 = trans[s1];
+              dest[0] = s0;
+              dest[screens[scrn].byte_pitch] = s1;
+              dest += screens[scrn].byte_pitch*2;
+              s0 = source[2];
+              s1 = source[3];
+              s0 = trans[s0];
+              s1 = trans[s1];
+              source += 4;
+              dest[0] = s0;
+              dest[screens[scrn].byte_pitch] = s1;
+              dest += screens[scrn].byte_pitch*2;
+            } while ((count-=4)>=0);
+          if (count+=4)
+            do {
+              *dest = trans[*source++];
+              dest += screens[scrn].byte_pitch;
+            } while (--count);
+        }
+      }
     }
-    else
-    {
-        w_factor = 1;
-        h_factor = 1;
+  }
+  else {
+    // CPhipps - move stretched patch drawing code here
+    //         - reformat initialisers, move variables into inner blocks
+
+    int   col;
+    int   w = (patch->width << 16) - 1; // CPhipps - -1 for faster flipping
+    int   left, right, top, bottom;
+    int   DX  = (SCREENWIDTH<<16)  / 320;
+    int   DXI = (320<<16)          / SCREENWIDTH;
+    int   DY  = (SCREENHEIGHT<<16) / 200;
+    int   DYI = (200<<16)          / SCREENHEIGHT;
+    R_DrawColumn_f colfunc;
+    draw_column_vars_t dcvars;
+    draw_vars_t olddrawvars = drawvars;
+
+    R_SetDefaultDrawColumnVars(&dcvars);
+
+    drawvars.byte_topleft = screens[scrn].data;
+    drawvars.short_topleft = (unsigned short *)screens[scrn].data;
+    drawvars.int_topleft = (unsigned int *)screens[scrn].data;
+    drawvars.byte_pitch = screens[scrn].byte_pitch;
+    drawvars.short_pitch = screens[scrn].short_pitch;
+    drawvars.int_pitch = screens[scrn].int_pitch;
+
+    if (!(flags & VPT_STRETCH)) {
+      DX = 1 << 16;
+      DXI = 1 << 16;
+      DY = 1 << 16;
+      DYI = 1 << 16;
     }
 
-    handle = fopen(filename, "wb");
-    if (!handle)
-    {
-        return;
+    if (flags & VPT_TRANS) {
+      colfunc = R_GetDrawColumnFunc(RDC_PIPELINE_TRANSLATED, drawvars.filterpatch, RDRAW_FILTER_NONE);
+      dcvars.translation = trans;
+    } else {
+      colfunc = R_GetDrawColumnFunc(RDC_PIPELINE_STANDARD, drawvars.filterpatch, RDRAW_FILTER_NONE);
     }
 
-    ppng = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL,
-                                   error_fn, warning_fn);
-    if (!ppng)
-    {
-        fclose(handle);
-        return;
+    left = ( x * DX ) >> FRACBITS;
+    top = ( y * DY ) >> FRACBITS;
+    right = ( (x + patch->width) * DX ) >> FRACBITS;
+    bottom = ( (y + patch->height) * DY ) >> FRACBITS;
+
+    dcvars.texheight = patch->height;
+    dcvars.iscale = DYI;
+    dcvars.drawingmasked = MAX(patch->width, patch->height) > 8;
+    dcvars.edgetype = drawvars.patch_edges;
+
+    if (drawvars.filterpatch == RDRAW_FILTER_LINEAR) {
+      // bias the texture u coordinate
+      if (patch->isNotTileable)
+        col = -(FRACUNIT>>1);
+      else
+        col = (patch->width<<FRACBITS)-(FRACUNIT>>1);
+    }
+    else {
+      col = 0;
     }
 
-    pinfo = png_create_info_struct(ppng);
-    if (!pinfo)
-    {
-        fclose(handle);
-        png_destroy_write_struct(&ppng, NULL);
-        return;
-    }
+    for (dcvars.x=left; dcvars.x<right; dcvars.x++, col+=DXI) {
+      int i;
+      const int colindex = (flags & VPT_FLIP) ? ((w - col)>>16): (col>>16);
+      const rcolumn_t *column = R_GetPatchColumn(patch, colindex);
+      const rcolumn_t *prevcolumn = R_GetPatchColumn(patch, colindex-1);
+      const rcolumn_t *nextcolumn = R_GetPatchColumn(patch, colindex+1);
 
-    png_init_io(ppng, handle);
+      // ignore this column if it's to the left of our clampRect
+      if (dcvars.x < 0)
+        continue;
+      if (dcvars.x >= SCREENWIDTH)
+        break;
 
-    png_set_IHDR(ppng, pinfo, width, height,
-                 8, PNG_COLOR_TYPE_PALETTE, PNG_INTERLACE_NONE,
-                 PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILTER_TYPE_DEFAULT);
+      dcvars.texu = ((flags & VPT_FLIP) ? ((patch->width<<FRACBITS)-col) : col) % (patch->width<<FRACBITS);
 
-    pcolor = malloc(sizeof(*pcolor) * 256);
-    if (!pcolor)
-    {
-        fclose(handle);
-        png_destroy_write_struct(&ppng, &pinfo);
-        return;
-    }
+      // step through the posts in a column
+      for (i=0; i<column->numPosts; i++) {
+        const rpost_t *post = &column->posts[i];
+        int yoffset = 0;
 
-    for (i = 0; i < 256; i++)
-    {
-        pcolor[i].red   = *(palette + 3 * i);
-        pcolor[i].green = *(palette + 3 * i + 1);
-        pcolor[i].blue  = *(palette + 3 * i + 2);
-    }
+        dcvars.yl = (((y + post->topdelta) * DY)>>FRACBITS);
+        dcvars.yh = (((y + post->topdelta + post->length) * DY - (FRACUNIT>>1))>>FRACBITS);
+        dcvars.edgeslope = post->slope;
 
-    png_set_PLTE(ppng, pinfo, pcolor, 256);
-    free(pcolor);
+        if ((dcvars.yh < 0) || (dcvars.yh < top))
+          continue;
+        if ((dcvars.yl >= SCREENHEIGHT) || (dcvars.yl >= bottom))
+          continue;
 
-    png_write_info(ppng, pinfo);
-
-    rowbuf = malloc(width);
-
-    if (rowbuf)
-    {
-        for (i = 0; i < SCREENHEIGHT; i++)
-        {
-            // expand the row 5x
-            for (j = 0; j < SCREENWIDTH; j++)
-            {
-                memset(rowbuf + j * w_factor, *(data + i*SCREENWIDTH + j), w_factor);
-            }
-
-            // write the row 6 times
-            for (j = 0; j < h_factor; j++)
-            {
-                png_write_row(ppng, rowbuf);
-            }
+        if (dcvars.yh >= bottom) {
+          dcvars.yh = bottom-1;
+          dcvars.edgeslope &= ~RDRAW_EDGESLOPE_BOT_MASK;
+        }
+        if (dcvars.yh >= SCREENHEIGHT) {
+          dcvars.yh = SCREENHEIGHT-1;
+          dcvars.edgeslope &= ~RDRAW_EDGESLOPE_BOT_MASK;
         }
 
-        free(rowbuf);
+        if (dcvars.yl < 0) {
+          yoffset = 0-dcvars.yl;
+          dcvars.yl = 0;
+          dcvars.edgeslope &= ~RDRAW_EDGESLOPE_TOP_MASK;
+        }
+        if (dcvars.yl < top) {
+          yoffset = top-dcvars.yl;
+          dcvars.yl = top;
+          dcvars.edgeslope &= ~RDRAW_EDGESLOPE_TOP_MASK;
+        }
+
+        dcvars.source = column->pixels + post->topdelta + yoffset;
+        dcvars.prevsource = prevcolumn ? prevcolumn->pixels + post->topdelta + yoffset: dcvars.source;
+        dcvars.nextsource = nextcolumn ? nextcolumn->pixels + post->topdelta + yoffset: dcvars.source;
+
+        dcvars.texturemid = -((dcvars.yl-centery)*dcvars.iscale);
+
+        colfunc(&dcvars);
+      }
     }
 
-    png_write_end(ppng, pinfo);
-    png_destroy_write_struct(&ppng, &pinfo);
-    fclose(handle);
+    R_ResetColumnBuffer();
+    drawvars = olddrawvars;
+  }
+}
+
+// CPhipps - some simple, useful wrappers for that function, for drawing patches from wads
+
+// CPhipps - GNU C only suppresses generating a copy of a function if it is
+// static inline; other compilers have different behaviour.
+// This inline is _only_ for the function below
+
+static void FUNC_V_DrawNumPatch(int x, int y, int scrn, int lump,
+         int cm, enum patch_translation_e flags)
+{
+  V_DrawMemPatch(x, y, scrn, R_CachePatchNum(lump), cm, flags);
+  R_UnlockPatchNum(lump);
+}
+
+unsigned short *V_Palette15 = NULL;
+unsigned short *V_Palette16 = NULL;
+unsigned int *V_Palette32 = NULL;
+static unsigned short *Palettes15 = NULL;
+static unsigned short *Palettes16 = NULL;
+static unsigned int *Palettes32 = NULL;
+static int currentPaletteIndex = 0;
+
+//
+// V_UpdateTrueColorPalette
+//
+void V_UpdateTrueColorPalette(video_mode_t mode) {
+  int i, w, p;
+  byte r,g,b;
+  int nr,ng,nb;
+  float t;
+  int paletteNum = (V_GetMode() == VID_MODEGL ? 0 : currentPaletteIndex);
+  static int usegammaOnLastPaletteGeneration = -1;
+  
+  int pplump = W_GetNumForName("PLAYPAL");
+  int gtlump = (W_CheckNumForName)("GAMMATBL",ns_prboom);
+  const byte *pal = W_CacheLumpNum(pplump);
+  // opengl doesn't use the gamma
+  const byte *const gtable = 
+    (const byte *)W_CacheLumpNum(gtlump) + 
+    (V_GetMode() == VID_MODEGL ? 0 : 256*(usegamma))
+  ;
+
+  int numPals = W_LumpLength(pplump) / (3*256);
+  const float dontRoundAbove = 220;
+  float roundUpR, roundUpG, roundUpB;
+  
+  if (usegammaOnLastPaletteGeneration != usegamma) {
+    if (Palettes15) free(Palettes15);
+    if (Palettes16) free(Palettes16);
+    if (Palettes32) free(Palettes32);
+    Palettes15 = NULL;
+    Palettes16 = NULL;
+    Palettes32 = NULL;
+    usegammaOnLastPaletteGeneration = usegamma;      
+  }
+  
+  if (mode == VID_MODE32) {
+    if (!Palettes32) {
+      // set int palette
+      Palettes32 = (int*)malloc(numPals*256*sizeof(int)*VID_NUMCOLORWEIGHTS);
+      for (p=0; p<numPals; p++) {
+        for (i=0; i<256; i++) {
+          r = gtable[pal[(256*p+i)*3+0]];
+          g = gtable[pal[(256*p+i)*3+1]];
+          b = gtable[pal[(256*p+i)*3+2]];
+          
+          // ideally, we should always round up, but very bright colors
+          // overflow the blending adds, so they don't get rounded.
+          roundUpR = (r > dontRoundAbove) ? 0 : 0.5f;
+          roundUpG = (g > dontRoundAbove) ? 0 : 0.5f;
+          roundUpB = (b > dontRoundAbove) ? 0 : 0.5f;
+                  
+          for (w=0; w<VID_NUMCOLORWEIGHTS; w++) {
+            t = (float)(w)/(float)(VID_NUMCOLORWEIGHTS-1);
+            nr = (int)(r*t+roundUpR);
+            ng = (int)(g*t+roundUpG);
+            nb = (int)(b*t+roundUpB);
+            Palettes32[((p*256+i)*VID_NUMCOLORWEIGHTS)+w] = (
+              (nr<<16) | (ng<<8) | nb
+            );
+          }
+        }
+      }
+    }
+    V_Palette32 = Palettes32 + paletteNum*256*VID_NUMCOLORWEIGHTS;
+  }
+  else if (mode == VID_MODE16) {
+    if (!Palettes16) {
+      // set short palette
+      Palettes16 = (short*)malloc(numPals*256*sizeof(short)*VID_NUMCOLORWEIGHTS);
+      for (p=0; p<numPals; p++) {
+        for (i=0; i<256; i++) {
+          r = gtable[pal[(256*p+i)*3+0]];
+          g = gtable[pal[(256*p+i)*3+1]];
+          b = gtable[pal[(256*p+i)*3+2]];
+          
+          // ideally, we should always round up, but very bright colors
+          // overflow the blending adds, so they don't get rounded.
+          roundUpR = (r > dontRoundAbove) ? 0 : 0.5f;
+          roundUpG = (g > dontRoundAbove) ? 0 : 0.5f;
+          roundUpB = (b > dontRoundAbove) ? 0 : 0.5f;
+                   
+          for (w=0; w<VID_NUMCOLORWEIGHTS; w++) {
+            t = (float)(w)/(float)(VID_NUMCOLORWEIGHTS-1);
+            nr = (int)((r>>3)*t+roundUpR);
+            ng = (int)((g>>2)*t+roundUpG);
+            nb = (int)((b>>3)*t+roundUpB);
+            Palettes16[((p*256+i)*VID_NUMCOLORWEIGHTS)+w] = (
+              (nr<<11) | (ng<<5) | nb
+            );
+          }
+        }
+      }
+    }
+    V_Palette16 = Palettes16 + paletteNum*256*VID_NUMCOLORWEIGHTS;
+  }
+  else if (mode == VID_MODE15) {
+    if (!Palettes15) {
+      // set short palette
+      Palettes15 = (short*)malloc(numPals*256*sizeof(short)*VID_NUMCOLORWEIGHTS);
+      for (p=0; p<numPals; p++) {
+        for (i=0; i<256; i++) {
+          r = gtable[pal[(256*p+i)*3+0]];
+          g = gtable[pal[(256*p+i)*3+1]];
+          b = gtable[pal[(256*p+i)*3+2]];
+          
+          // ideally, we should always round up, but very bright colors
+          // overflow the blending adds, so they don't get rounded.
+          roundUpR = (r > dontRoundAbove) ? 0 : 0.5f;
+          roundUpG = (g > dontRoundAbove) ? 0 : 0.5f;
+          roundUpB = (b > dontRoundAbove) ? 0 : 0.5f;
+                   
+          for (w=0; w<VID_NUMCOLORWEIGHTS; w++) {
+            t = (float)(w)/(float)(VID_NUMCOLORWEIGHTS-1);
+            nr = (int)((r>>3)*t+roundUpR);
+            ng = (int)((g>>3)*t+roundUpG);
+            nb = (int)((b>>3)*t+roundUpB);
+            Palettes15[((p*256+i)*VID_NUMCOLORWEIGHTS)+w] = (
+              (nr<<10) | (ng<<5) | nb
+            );
+          }
+        }
+      }
+    }
+    V_Palette15 = Palettes15 + paletteNum*256*VID_NUMCOLORWEIGHTS;
+  }       
+   
+  W_UnlockLumpNum(pplump);
+  W_UnlockLumpNum(gtlump);
+}
+
+
+//---------------------------------------------------------------------------
+// V_DestroyTrueColorPalette
+//---------------------------------------------------------------------------
+static void V_DestroyTrueColorPalette(video_mode_t mode) {
+  if (mode == VID_MODE15) {
+    if (Palettes15) free(Palettes15);
+    Palettes15 = NULL;
+    V_Palette15 = NULL;
+  }
+  if (mode == VID_MODE16) {
+    if (Palettes16) free(Palettes16);
+    Palettes16 = NULL;
+    V_Palette16 = NULL;
+  }
+  if (mode == VID_MODE32) {
+    if (Palettes32) free(Palettes32);
+    Palettes32 = NULL;
+    V_Palette32 = NULL;
+  }
+}
+
+void V_DestroyUnusedTrueColorPalettes(void) {
+  if (V_GetMode() != VID_MODE15) V_DestroyTrueColorPalette(VID_MODE15);
+  if (V_GetMode() != VID_MODE16) V_DestroyTrueColorPalette(VID_MODE16);
+  if (V_GetMode() != VID_MODE32) V_DestroyTrueColorPalette(VID_MODE32);  
+}
+
+//
+// V_SetPalette
+//
+// CPhipps - New function to set the palette to palette number pal.
+// Handles loading of PLAYPAL and calls I_SetPalette
+
+void V_SetPalette(int pal)
+{
+  currentPaletteIndex = pal;
+
+  if (V_GetMode() == VID_MODEGL) {
+#ifdef GL_DOOM
+    gld_SetPalette(pal);
+#endif
+  } else {
+    I_SetPalette(pal);
+    if (V_GetMode() == VID_MODE15 || V_GetMode() == VID_MODE16 || V_GetMode() == VID_MODE32) {
+      // V_SetPalette can be called as part of the gamma setting before
+      // we've loaded any wads, which prevents us from reading the palette - POPE
+      if (W_CheckNumForName("PLAYPAL") >= 0) {
+        V_UpdateTrueColorPalette(V_GetMode());
+      }
+    }
+  }
+}
+
+//
+// V_FillRect
+//
+// CPhipps - New function to fill a rectangle with a given colour
+static void V_FillRect8(int scrn, int x, int y, int width, int height, byte colour)
+{
+  byte* dest = screens[scrn].data + x + y*screens[scrn].byte_pitch;
+  while (height--) {
+    memset(dest, colour, width);
+    dest += screens[scrn].byte_pitch;
+  }
+}
+
+static void V_FillRect15(int scrn, int x, int y, int width, int height, byte colour)
+{
+  unsigned short* dest = (unsigned short *)screens[scrn].data + x + y*screens[scrn].short_pitch;
+  int w;
+  short c = VID_PAL15(colour, VID_COLORWEIGHTMASK);
+  while (height--) {
+    for (w=0; w<width; w++) {
+      dest[w] = c;
+    }
+    dest += screens[scrn].short_pitch;
+  }
+}
+
+static void V_FillRect16(int scrn, int x, int y, int width, int height, byte colour)
+{
+  unsigned short* dest = (unsigned short *)screens[scrn].data + x + y*screens[scrn].short_pitch;
+  int w;
+  short c = VID_PAL16(colour, VID_COLORWEIGHTMASK);
+  while (height--) {
+    for (w=0; w<width; w++) {
+      dest[w] = c;
+    }
+    dest += screens[scrn].short_pitch;
+  }
+}
+
+static void V_FillRect32(int scrn, int x, int y, int width, int height, byte colour)
+{
+  unsigned int* dest = (unsigned int *)screens[scrn].data + x + y*screens[scrn].int_pitch;
+  int w;
+  int c = VID_PAL32(colour, VID_COLORWEIGHTMASK);
+  while (height--) {
+    for (w=0; w<width; w++) {
+      dest[w] = c;
+    }
+    dest += screens[scrn].int_pitch;
+  }
+}
+
+static void WRAP_V_DrawLine(fline_t* fl, int color);
+static void V_PlotPixel8(int scrn, int x, int y, byte color);
+static void V_PlotPixel15(int scrn, int x, int y, byte color);
+static void V_PlotPixel16(int scrn, int x, int y, byte color);
+static void V_PlotPixel32(int scrn, int x, int y, byte color);
+
+#ifdef GL_DOOM
+static void WRAP_gld_FillRect(int scrn, int x, int y, int width, int height, byte colour)
+{
+  gld_FillBlock(x,y,width,height,colour);
+}
+static void WRAP_gld_CopyRect(int srcx, int srcy, int srcscrn, int width, int height, int destx, int desty, int destscrn, enum patch_translation_e flags)
+{
+}
+static void WRAP_gld_DrawBackground(const char *flatname, int n)
+{
+  gld_DrawBackground(flatname);
+}
+static void WRAP_gld_DrawNumPatch(int x, int y, int scrn, int lump, int cm, enum patch_translation_e flags)
+{
+  gld_DrawNumPatch(x,y,lump,cm,flags);
+}
+static void WRAP_gld_DrawBlock(int x, int y, int scrn, int width, int height, const byte *src, enum patch_translation_e flags)
+{
+}
+static void V_PlotPixelGL(int scrn, int x, int y, byte color) {
+  gld_DrawLine(x-1, y, x+1, y, color);
+  gld_DrawLine(x, y-1, x, y+1, color);
+}
+static void WRAP_gld_DrawLine(fline_t* fl, int color)
+{
+  gld_DrawLine(fl->a.x, fl->a.y, fl->b.x, fl->b.y, color);
 }
 #endif
 
+static void NULL_FillRect(int scrn, int x, int y, int width, int height, byte colour) {}
+static void NULL_CopyRect(int srcx, int srcy, int srcscrn, int width, int height, int destx, int desty, int destscrn, enum patch_translation_e flags) {}
+static void NULL_DrawBackground(const char *flatname, int n) {}
+static void NULL_DrawNumPatch(int x, int y, int scrn, int lump, int cm, enum patch_translation_e flags) {}
+static void NULL_DrawBlock(int x, int y, int scrn, int width, int height, const byte *src, enum patch_translation_e flags) {}
+static void NULL_PlotPixel(int scrn, int x, int y, byte color) {}
+static void NULL_DrawLine(fline_t* fl, int color) {}
+
+const char *default_videomode;
+static video_mode_t current_videomode = VID_MODE8;
+
+V_CopyRect_f V_CopyRect = NULL_CopyRect;
+V_FillRect_f V_FillRect = NULL_FillRect;
+V_DrawNumPatch_f V_DrawNumPatch = NULL_DrawNumPatch;
+V_DrawBackground_f V_DrawBackground = NULL_DrawBackground;
+V_PlotPixel_f V_PlotPixel = NULL_PlotPixel;
+V_DrawLine_f V_DrawLine = NULL_DrawLine;
+
 //
-// V_ScreenShot
+// V_InitMode
 //
-
-void V_ScreenShot(const char *format)
-{
-    int i;
-    char lbmname[16]; // haleyjd 20110213: BUG FIX - 12 is too small!
-    const char *ext;
-
-    // find a file name to save it to
-
-#ifdef HAVE_LIBPNG
-    extern int png_screenshots;
-    if (png_screenshots)
-    {
-        ext = "png";
-    }
-    else
+void V_InitMode(video_mode_t mode) {
+#ifndef GL_DOOM
+  if (mode == VID_MODEGL)
+    mode = VID_MODE8;
 #endif
-    {
-        ext = "pcx";
-    }
-
-    for (i=0; i<=99; i++)
-    {
-        M_snprintf(lbmname, sizeof(lbmname), format, i, ext);
-
-        if (!M_FileExists(lbmname))
-        {
-            break;      // file doesn't exist
-        }
-    }
-
-    if (i == 100)
-    {
-#ifdef HAVE_LIBPNG
-        if (png_screenshots)
-        {
-            I_Error ("V_ScreenShot: Couldn't create a PNG");
-        }
-        else
+  switch (mode) {
+    case VID_MODE8:
+      lprintf(LO_INFO, "V_InitMode: using 8 bit video mode\n");
+      V_CopyRect = FUNC_V_CopyRect;
+      V_FillRect = V_FillRect8;
+      V_DrawNumPatch = FUNC_V_DrawNumPatch;
+      V_DrawBackground = FUNC_V_DrawBackground;
+      V_PlotPixel = V_PlotPixel8;
+      V_DrawLine = WRAP_V_DrawLine;
+      current_videomode = VID_MODE8;
+      break;
+    case VID_MODE15:
+      lprintf(LO_INFO, "V_InitMode: using 15 bit video mode\n");
+      V_CopyRect = FUNC_V_CopyRect;
+      V_FillRect = V_FillRect15;
+      V_DrawNumPatch = FUNC_V_DrawNumPatch;
+      V_DrawBackground = FUNC_V_DrawBackground;
+      V_PlotPixel = V_PlotPixel15;
+      V_DrawLine = WRAP_V_DrawLine;
+      current_videomode = VID_MODE15;
+      break;
+    case VID_MODE16:
+      lprintf(LO_INFO, "V_InitMode: using 16 bit video mode\n");
+      V_CopyRect = FUNC_V_CopyRect;
+      V_FillRect = V_FillRect16;
+      V_DrawNumPatch = FUNC_V_DrawNumPatch;
+      V_DrawBackground = FUNC_V_DrawBackground;
+      V_PlotPixel = V_PlotPixel16;
+      V_DrawLine = WRAP_V_DrawLine;
+      current_videomode = VID_MODE16;
+      break;
+    case VID_MODE32:
+      lprintf(LO_INFO, "V_InitMode: using 32 bit video mode\n");
+      V_CopyRect = FUNC_V_CopyRect;
+      V_FillRect = V_FillRect32;
+      V_DrawNumPatch = FUNC_V_DrawNumPatch;
+      V_DrawBackground = FUNC_V_DrawBackground;
+      V_PlotPixel = V_PlotPixel32;
+      V_DrawLine = WRAP_V_DrawLine;
+      current_videomode = VID_MODE32;
+      break;
+#ifdef GL_DOOM
+    case VID_MODEGL:
+      lprintf(LO_INFO, "V_InitMode: using OpenGL video mode\n");
+      V_CopyRect = WRAP_gld_CopyRect;
+      V_FillRect = WRAP_gld_FillRect;
+      V_DrawNumPatch = WRAP_gld_DrawNumPatch;
+      V_DrawBackground = WRAP_gld_DrawBackground;
+      V_PlotPixel = V_PlotPixelGL;
+      V_DrawLine = WRAP_gld_DrawLine;
+      current_videomode = VID_MODEGL;
+      break;
 #endif
-        {
-            I_Error ("V_ScreenShot: Couldn't create a PCX");
-        }
-    }
-
-#ifdef HAVE_LIBPNG
-    if (png_screenshots)
-    {
-    WritePNGfile(lbmname, I_VideoBuffer,
-                 SCREENWIDTH, SCREENHEIGHT,
-                 W_CacheLumpName (DEH_String("PLAYPAL"), PU_CACHE));
-    }
-    else
-#endif
-    {
-    // save the pcx file
-    WritePCXfile(lbmname, I_VideoBuffer,
-                 SCREENWIDTH, SCREENHEIGHT,
-                 W_CacheLumpName (DEH_String("PLAYPAL"), PU_CACHE));
-    }
+  }
+  R_FilterInit();
 }
 
-#define MOUSE_SPEED_BOX_WIDTH  120
-#define MOUSE_SPEED_BOX_HEIGHT 9
-
 //
-// V_DrawMouseSpeedBox
+// V_GetMode
 //
-
-// If box is only to calibrate speed, testing relative speed (as a measure
-// of game pixels to movement units) is important whether physical mouse DPI
-// is high or low. Line resolution starts at 1 pixel per 1 move-unit: if
-// line maxes out, resolution becomes 1 pixel per 2 move-units, then per
-// 3 move-units, etc.
-
-static int linelen_multiplier = 1;
-
-void V_DrawMouseSpeedBox(int speed)
-{
-    extern int usemouse;
-    int bgcolor, bordercolor, red, black, white, yellow;
-    int box_x, box_y;
-    int original_speed;
-    int redline_x;
-    int linelen;
-    int i;
-    boolean draw_acceleration = false;
-
-    // Get palette indices for colors for widget. These depend on the
-    // palette of the game being played.
-
-    bgcolor = I_GetPaletteIndex(0x77, 0x77, 0x77);
-    bordercolor = I_GetPaletteIndex(0x55, 0x55, 0x55);
-    red = I_GetPaletteIndex(0xff, 0x00, 0x00);
-    black = I_GetPaletteIndex(0x00, 0x00, 0x00);
-    yellow = I_GetPaletteIndex(0xff, 0xff, 0x00);
-    white = I_GetPaletteIndex(0xff, 0xff, 0xff);
-
-    // If the mouse is turned off, don't draw the box at all.
-    if (!usemouse)
-    {
-        return;
-    }
-
-    // If acceleration is used, draw a box that helps to calibrate the
-    // threshold point.
-    if (mouse_threshold > 0 && fabs(mouse_acceleration - 1) > 0.01)
-    {
-        draw_acceleration = true;
-    }
-
-    // Calculate box position
-
-    box_x = SCREENWIDTH - MOUSE_SPEED_BOX_WIDTH - 10;
-    box_y = 15;
-
-    V_DrawFilledBox(box_x, box_y,
-                    MOUSE_SPEED_BOX_WIDTH, MOUSE_SPEED_BOX_HEIGHT, bgcolor);
-    V_DrawBox(box_x, box_y,
-              MOUSE_SPEED_BOX_WIDTH, MOUSE_SPEED_BOX_HEIGHT, bordercolor);
-
-    // Calculate the position of the red threshold line when calibrating
-    // acceleration.  This is 1/3 of the way along the box.
-
-    redline_x = MOUSE_SPEED_BOX_WIDTH / 3;
-
-    // Calculate line length
-
-    if (draw_acceleration && speed >= mouse_threshold)
-    {
-        // Undo acceleration and get back the original mouse speed
-        original_speed = speed - mouse_threshold;
-        original_speed = (int) (original_speed / mouse_acceleration);
-        original_speed += mouse_threshold;
-
-        linelen = (original_speed * redline_x) / mouse_threshold;
-    }
-    else
-    {
-        linelen = speed / linelen_multiplier;
-    }
-
-    // Draw horizontal "thermometer"
-
-    if (linelen > MOUSE_SPEED_BOX_WIDTH - 1)
-    {
-        linelen = MOUSE_SPEED_BOX_WIDTH - 1;
-        if (!draw_acceleration)
-        {
-            linelen_multiplier++;
-        }
-    }
-
-    V_DrawHorizLine(box_x + 1, box_y + 4, MOUSE_SPEED_BOX_WIDTH - 2, black);
-
-    if (!draw_acceleration || linelen < redline_x)
-    {
-        V_DrawHorizLine(box_x + 1, box_y + MOUSE_SPEED_BOX_HEIGHT / 2,
-                        linelen, white);
-    }
-    else
-    {
-        V_DrawHorizLine(box_x + 1, box_y + MOUSE_SPEED_BOX_HEIGHT / 2,
-                        redline_x, white);
-        V_DrawHorizLine(box_x + redline_x, box_y + MOUSE_SPEED_BOX_HEIGHT / 2,
-                        linelen - redline_x, yellow);
-    }
-
-    if (draw_acceleration)
-    {
-        // Draw acceleration threshold line
-        V_DrawVertLine(box_x + redline_x, box_y + 1,
-                       MOUSE_SPEED_BOX_HEIGHT - 2, red);
-    }
-    else
-    {
-        // Draw multiplier lines to indicate current resolution
-        for (i = 1; i < linelen_multiplier; i++)
-        {
-            V_DrawVertLine(
-                box_x + (i * MOUSE_SPEED_BOX_WIDTH / linelen_multiplier),
-                box_y + 1, MOUSE_SPEED_BOX_HEIGHT - 2, yellow);
-        }
-    }
+video_mode_t V_GetMode(void) {
+  return current_videomode;
 }
 
+//
+// V_GetModePixelDepth
+//
+int V_GetModePixelDepth(video_mode_t mode) {
+  switch (mode) {
+    case VID_MODE8: return 1;
+    case VID_MODE15: return 2;
+    case VID_MODE16: return 2;
+    case VID_MODE32: return 4;
+    default: return 0;
+  }
+}
+
+//
+// V_GetNumPixelBits
+//
+int V_GetNumPixelBits(void) {
+  switch (current_videomode) {
+    case VID_MODE8: return 8;
+    case VID_MODE15: return 15;
+    case VID_MODE16: return 16;
+    case VID_MODE32: return 32;
+    default: return 0;
+  }
+}
+
+//
+// V_GetPixelDepth
+//
+int V_GetPixelDepth(void) {
+  return V_GetModePixelDepth(current_videomode);
+}
+
+//
+// V_AllocScreen
+//
+void V_AllocScreen(screeninfo_t *scrn) {
+  if (!scrn->not_on_heap)
+    if ((scrn->byte_pitch * scrn->height) > 0)
+      scrn->data = malloc(scrn->byte_pitch*scrn->height);
+}
+
+//
+// V_AllocScreens
+//
+void V_AllocScreens(void) {
+  int i;
+
+  for (i=0; i<NUM_SCREENS; i++)
+    V_AllocScreen(&screens[i]);
+}
+
+//
+// V_FreeScreen
+//
+void V_FreeScreen(screeninfo_t *scrn) {
+  if (!scrn->not_on_heap) {
+    free(scrn->data);
+    scrn->data = NULL;
+  }
+}
+
+//
+// V_FreeScreens
+//
+void V_FreeScreens(void) {
+  int i;
+
+  for (i=0; i<NUM_SCREENS; i++)
+    V_FreeScreen(&screens[i]);
+}
+
+static void V_PlotPixel8(int scrn, int x, int y, byte color) {
+  screens[scrn].data[x+screens[scrn].byte_pitch*y] = color;
+}
+
+static void V_PlotPixel15(int scrn, int x, int y, byte color) {
+  ((unsigned short *)screens[scrn].data)[x+screens[scrn].short_pitch*y] = VID_PAL15(color, VID_COLORWEIGHTMASK);
+}
+
+static void V_PlotPixel16(int scrn, int x, int y, byte color) {
+  ((unsigned short *)screens[scrn].data)[x+screens[scrn].short_pitch*y] = VID_PAL16(color, VID_COLORWEIGHTMASK);
+}
+
+static void V_PlotPixel32(int scrn, int x, int y, byte color) {
+  ((unsigned int *)screens[scrn].data)[x+screens[scrn].int_pitch*y] = VID_PAL32(color, VID_COLORWEIGHTMASK);
+}
+
+//
+// WRAP_V_DrawLine()
+//
+// Draw a line in the frame buffer.
+// Classic Bresenham w/ whatever optimizations needed for speed
+//
+// Passed the frame coordinates of line, and the color to be drawn
+// Returns nothing
+//
+static void WRAP_V_DrawLine(fline_t* fl, int color)
+{
+  register int x;
+  register int y;
+  register int dx;
+  register int dy;
+  register int sx;
+  register int sy;
+  register int ax;
+  register int ay;
+  register int d;
+
+#ifdef RANGECHECK         // killough 2/22/98
+  static int fuck = 0;
+
+  // For debugging only
+  if
+  (
+       fl->a.x < 0 || fl->a.x >= SCREENWIDTH
+    || fl->a.y < 0 || fl->a.y >= SCREENHEIGHT
+    || fl->b.x < 0 || fl->b.x >= SCREENWIDTH
+    || fl->b.y < 0 || fl->b.y >= SCREENHEIGHT
+  )
+  {
+    //jff 8/3/98 use logical output routine
+    lprintf(LO_DEBUG, "fuck %d \r", fuck++);
+    return;
+  }
+#endif
+
+#define PUTDOT(xx,yy,cc) V_PlotPixel(0,xx,yy,(byte)cc)
+
+  dx = fl->b.x - fl->a.x;
+  ax = 2 * (dx<0 ? -dx : dx);
+  sx = dx<0 ? -1 : 1;
+
+  dy = fl->b.y - fl->a.y;
+  ay = 2 * (dy<0 ? -dy : dy);
+  sy = dy<0 ? -1 : 1;
+
+  x = fl->a.x;
+  y = fl->a.y;
+
+  if (ax > ay)
+  {
+    d = ay - ax/2;
+    while (1)
+    {
+      PUTDOT(x,y,color);
+      if (x == fl->b.x) return;
+      if (d>=0)
+      {
+        y += sy;
+        d -= ax;
+      }
+      x += sx;
+      d += ay;
+    }
+  }
+  else
+  {
+    d = ax - ay/2;
+    while (1)
+    {
+      PUTDOT(x, y, color);
+      if (y == fl->b.y) return;
+      if (d >= 0)
+      {
+        x += sx;
+        d -= ay;
+      }
+      y += sy;
+      d += ax;
+    }
+  }
+}

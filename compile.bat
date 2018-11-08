@@ -17,7 +17,6 @@ emcc src/i_main.c             ^
      src/i_cdmus.c            ^
      src/i_endoom.c           ^
      src/i_input.c            ^
-     src/i_joystick.c         ^
      src/i_midipipe.c         ^
      opl/opl.c                ^
      opl/opl_linux.c          ^
@@ -61,66 +60,66 @@ emcc src/i_main.c             ^
      src/deh_main.c           ^
      src/deh_mapping.c        ^
      src/deh_text.c           ^
-     src/doom/am_map.c        ^
-     src/doom/deh_ammo.c      ^
-     src/doom/deh_bexstr.c    ^
-     src/doom/deh_cheat.c     ^
-     src/doom/deh_doom.c      ^
-     src/doom/deh_frame.c     ^
-     src/doom/deh_misc.c      ^
-     src/doom/deh_ptr.c       ^
-     src/doom/deh_sound.c     ^
-     src/doom/deh_thing.c     ^
-     src/doom/deh_weapon.c    ^
-     src/doom/d_items.c       ^
-     src/doom/d_main.c        ^
-     src/doom/d_net.c         ^
-     src/doom/doomdef.c       ^
-     src/doom/doomstat.c      ^
-     src/doom/dstrings.c      ^
-     src/doom/f_finale.c      ^
-     src/doom/f_wipe.c        ^
-     src/doom/g_game.c        ^
-     src/doom/hu_lib.c        ^
-     src/doom/hu_stuff.c      ^
-     src/doom/info.c          ^
-     src/doom/m_menu.c        ^
-     src/doom/m_random.c      ^
-     src/doom/p_ceilng.c      ^
-     src/doom/p_doors.c       ^
-     src/doom/p_enemy.c       ^
-     src/doom/p_floor.c       ^
-     src/doom/p_inter.c       ^
-     src/doom/p_lights.c      ^
-     src/doom/p_map.c         ^
-     src/doom/p_maputl.c      ^
-     src/doom/p_mobj.c        ^
-     src/doom/p_plats.c       ^
-     src/doom/p_pspr.c        ^
-     src/doom/p_saveg.c       ^
-     src/doom/p_setup.c       ^
-     src/doom/p_sight.c       ^
-     src/doom/p_spec.c        ^
-     src/doom/p_switch.c      ^
-     src/doom/p_telept.c      ^
-     src/doom/p_tick.c        ^
-     src/doom/p_user.c        ^
-     src/doom/r_bsp.c         ^
-     src/doom/r_data.c        ^
-     src/doom/r_draw.c        ^
-     src/doom/r_main.c        ^
-     src/doom/r_plane.c       ^
-     src/doom/r_segs.c        ^
-     src/doom/r_sky.c         ^
-     src/doom/r_things.c      ^
-     src/doom/s_sound.c       ^
-     src/doom/sounds.c        ^
-     src/doom/statdump.c      ^
-     src/doom/st_lib.c        ^
-     src/doom/st_stuff.c      ^
-     src/doom/wi_stuff.c      ^
+     src/am_map.c             ^
+     src/deh_ammo.c           ^
+     src/deh_bexstr.c         ^
+     src/deh_cheat.c          ^
+     src/deh_doom.c           ^
+     src/deh_frame.c          ^
+     src/deh_misc.c           ^
+     src/deh_ptr.c            ^
+     src/deh_sound.c          ^
+     src/deh_thing.c          ^
+     src/deh_weapon.c         ^
+     src/d_items.c            ^
+     src/d_main.c             ^
+     src/d_net.c              ^
+     src/doomdef.c            ^
+     src/doomstat.c           ^
+     src/dstrings.c           ^
+     src/f_finale.c           ^
+     src/f_wipe.c             ^
+     src/g_game.c             ^
+     src/hu_lib.c             ^
+     src/hu_stuff.c           ^
+     src/info.c               ^
+     src/m_menu.c             ^
+     src/m_random.c           ^
+     src/p_ceilng.c           ^
+     src/p_doors.c            ^
+     src/p_enemy.c            ^
+     src/p_floor.c            ^
+     src/p_inter.c            ^
+     src/p_lights.c           ^
+     src/p_map.c              ^
+     src/p_maputl.c           ^
+     src/p_mobj.c             ^
+     src/p_plats.c            ^
+     src/p_pspr.c             ^
+     src/p_saveg.c            ^
+     src/p_setup.c            ^
+     src/p_sight.c            ^
+     src/p_spec.c             ^
+     src/p_switch.c           ^
+     src/p_telept.c           ^
+     src/p_tick.c             ^
+     src/p_user.c             ^
+     src/r_bsp.c              ^
+     src/r_data.c             ^
+     src/r_draw.c             ^
+     src/r_main.c             ^
+     src/r_plane.c            ^
+     src/r_segs.c             ^
+     src/r_sky.c              ^
+     src/r_things.c           ^
+     src/s_sound.c            ^
+     src/sounds.c             ^
+     src/statdump.c           ^
+     src/st_lib.c             ^
+     src/st_stuff.c           ^
+     src/wi_stuff.c           ^
      -s USE_SDL=2             ^
      -s ALLOW_MEMORY_GROWTH=1 ^
      -s ASSERTIONS=1          ^
-     -o doom.h                ^
+     -o doom.html             ^
      --embed-file doom.wad

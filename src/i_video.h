@@ -1,103 +1,82 @@
-//
-// Copyright(C) 1993-1996 Id Software, Inc.
-// Copyright(C) 2005-2014 Simon Howard
-//
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either version 2
-// of the License, or (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// DESCRIPTION:
-//	System specific interface stuff.
-//
-
+/* Emacs style mode select   -*- C++ -*-
+ *-----------------------------------------------------------------------------
+ *
+ *
+ *  PrBoom: a Doom port merged with LxDoom and LSDLDoom
+ *  based on BOOM, a modified and improved DOOM engine
+ *  Copyright (C) 1999 by
+ *  id Software, Chi Hoang, Lee Killough, Jim Flynn, Rand Phares, Ty Halderman
+ *  Copyright (C) 1999-2000 by
+ *  Jess Haas, Nicolas Kalkhof, Colin Phipps, Florian Schulze
+ *  Copyright 2005, 2006 by
+ *  Florian Schulze, Colin Phipps, Neil Stevens, Andrey Budko
+ *
+ *  This program is free software; you can redistribute it and/or
+ *  modify it under the terms of the GNU General Public License
+ *  as published by the Free Software Foundation; either version 2
+ *  of the License, or (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+ *  02111-1307, USA.
+ *
+ * DESCRIPTION:
+ *      System specific interface stuff.
+ *
+ *-----------------------------------------------------------------------------*/
 
 #ifndef __I_VIDEO__
 #define __I_VIDEO__
 
 #include "doomtype.h"
+#include "v_video.h"
 
-// Screen width and height.
+#ifdef __GNUG__
+#pragma interface
+#endif
 
-#define SCREENWIDTH  320
-#define SCREENHEIGHT 200
-
-// Screen height used when aspect_ratio_correct=true.
-
-#define SCREENHEIGHT_4_3 240
-
-typedef boolean (*grabmouse_callback_t)(void);
-
-// Called by D_DoomMain,
-// determines the hardware configuration
-// and sets up the video mode
+void I_PreInitGraphics(void); /* CPhipps - do stuff immediately on start */
+void I_CalculateRes(unsigned int width, unsigned int height); /* calculate resolution */
+void I_SetRes(void); /* set resolution */
 void I_InitGraphics (void);
-
-void I_GraphicsCheckCommandLine(void);
-
+void I_UpdateVideoMode(void);
 void I_ShutdownGraphics(void);
 
-// Takes full 8 bit values.
-void I_SetPalette (byte* palette);
-int I_GetPaletteIndex(int r, int g, int b);
+/* Takes full 8 bit values. */
+void I_SetPalette(int pal); /* CPhipps - pass down palette number */
 
 void I_UpdateNoBlit (void);
 void I_FinishUpdate (void);
 
-void I_ReadScreen (pixel_t* scr);
+int I_ScreenShot (const char *fname);
 
-void I_BeginRead (void);
+/* I_StartTic
+ * Called by D_DoomLoop,
+ * called before processing each tic in a frame.
+ * Quick syncronous operations are performed here.
+ * Can call D_PostEvent.
+ */
+void I_StartTic (void);
 
-void I_SetWindowTitle(const char *title);
-
-void I_CheckIsScreensaver(void);
-void I_SetGrabMouseCallback(grabmouse_callback_t func);
-
-void I_DisplayFPSDots(boolean dots_on);
-void I_BindVideoVariables(void);
-
-void I_InitWindowTitle(void);
-void I_InitWindowIcon(void);
-
-// Called before processing any tics in a frame (just after displaying a frame).
-// Time consuming syncronous operations are performed here (joystick reading).
+/* I_StartFrame
+ * Called by D_DoomLoop,
+ * called before processing any tics in a frame
+ * (just after displaying a frame).
+ * Time consuming syncronous operations
+ * are performed here (joystick reading).
+ * Can call D_PostEvent.
+ */
 
 void I_StartFrame (void);
 
-// Called before processing each tic in a frame.
-// Quick syncronous operations are performed here.
-
-void I_StartTic (void);
-
-// Enable the loading disk image displayed when reading from disk.
-
-void I_EnableLoadingDisk(int xoffs, int yoffs);
-
-extern char *video_driver;
-extern boolean screenvisible;
-
-extern int vanilla_keyboard_mapping;
-extern boolean screensaver_mode;
-extern int usegamma;
-extern pixel_t *I_VideoBuffer;
-
-extern int screen_width;
-extern int screen_height;
-extern int fullscreen;
-extern int aspect_ratio_correct;
-extern int integer_scaling;
-extern int vga_porch_flash;
-extern int force_software_renderer;
-
-extern char *window_position;
-void I_GetWindowPosition(int *x, int *y, int w, int h);
-
-// Joystic/gamepad hysteresis
-extern unsigned int joywait;
+extern int use_doublebuffer;  /* proff 2001-7-4 - controls wether to use doublebuffering*/
+extern int use_fullscreen;  /* proff 21/05/2000 */
+extern int desired_fullscreen; //e6y
 
 #endif
