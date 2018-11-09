@@ -105,18 +105,20 @@ __inline static fixed_t FixedMul(fixed_t a, fixed_t b)
 inline
 static CONSTFUNC fixed_t FixedMul(fixed_t a, fixed_t b)
 {
-  fixed_t result;
+  /* fixed_t result;
 
   asm (
       "  imull %2 ;"
       "  shrdl $16,%%edx,%0 ;"
-      : "=a" (result)           /* eax is always the result */
-      : "0" (a),                /* eax is also first operand */
-        "rm" (b)                /* second operand can be reg or mem */
-      : "%edx", "%cc"           /* edx and condition codes clobbered */
+      : "=a" (result)           // eax is always the result
+      : "0" (a),                // eax is also first operand
+        "rm" (b)                // second operand can be reg or mem
+      : "%edx", "%cc"           // edx and condition codes clobbered
       );
 
-  return result;
+  return result; */
+
+  return (fixed_t)((int_64_t) a*b >> FRACBITS);
 }
 # endif /* _MSC_VER */
 
@@ -177,7 +179,7 @@ inline
 static CONSTFUNC fixed_t FixedDiv(fixed_t a, fixed_t b)
 {
   //e6y: zg is a master of engineer science
-  if ((unsigned)D_abs(a) >> 14 < (unsigned)D_abs(b))
+  /* if ((unsigned)D_abs(a) >> 14 < (unsigned)D_abs(b))
     {
       fixed_t result;
       asm (
@@ -190,7 +192,10 @@ static CONSTFUNC fixed_t FixedDiv(fixed_t a, fixed_t b)
 	  );
       return result;
     }
-  return ((a^b)>>31) ^ INT_MAX;
+  return ((a^b)>>31) ^ INT_MAX; */
+
+  return ((unsigned)D_abs(a)>>14) >= (unsigned)D_abs(b) ? ((a^b)>>31) ^ INT_MAX :
+    (fixed_t)(((int_64_t) a << FRACBITS) / b);
 }
 # endif /* _MSC_VER */
 

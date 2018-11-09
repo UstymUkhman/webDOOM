@@ -46,7 +46,9 @@
 #include "SDL.h"
 #include "SDL_audio.h"
 #include "SDL_mutex.h"
+#ifndef __EMSCRIPTEN__ // emcc build: https://github.com/kripken/boon/commit/edfcb7c24dd0b5f1c60e1f5815c78b2d32729e43
 #include "SDL_byteorder.h"
+#endif
 #include "SDL_version.h"
 #ifdef HAVE_MIXER
 #include "SDL_mixer.h"

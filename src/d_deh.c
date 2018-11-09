@@ -54,7 +54,8 @@
 #define TRUE 1
 #define FALSE 0
 
-#ifndef HAVE_STRLWR
+// #ifndef HAVE_STRLWR
+#if !defined(HAVE_STRLWR) && !__EMSCRIPTEN__ // emcc build: https://github.com/kripken/boon/commit/4bd6c92d3a6dfc425b4192999f851f81faa7289f
 #include <ctype.h>
 
 static char* strlwr(char* str)

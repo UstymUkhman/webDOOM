@@ -454,6 +454,12 @@ static void CheckQueuedPackets(void)
 }
 #endif // HAVE_NET
 
+// emcc build: https://github.com/kripken/boon/commit/4568d714660cc13940c3ed2798d139c88aec2e40
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
+//
+
 void TryRunTics (void)
 {
   int runtics;
@@ -474,7 +480,14 @@ void TryRunTics (void)
           I_WaitForPacket(ms_to_next_tick);
         else
 #endif
-          I_uSleep(ms_to_next_tick*1000);
+        { // emcc build: https://github.com/kripken/boon/commit/4568d714660cc13940c3ed2798d139c88aec2e40
+          #ifdef __EMSCRIPTEN__
+            // extern void D_DoomLoopIterWrapper(void *arg);
+            // emscripten_async_call(D_DoomLoopIterWrapper, NULL, ms_to_next_tick);
+          #else
+            I_uSleep(ms_to_next_tick*1000);
+            #endif
+        } //
       }
       if (I_GetTime() - entertime > 10) {
 #ifdef HAVE_NET

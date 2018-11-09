@@ -1,0 +1,102 @@
+tables.o: tables.c /usr/include/stdc-predef.h ../config.h \
+ /usr/lib/gcc/i686-linux-gnu/4.8/include/stddef.h w_wad.h tables.h \
+ m_fixed.h doomtype.h \
+ /usr/lib/gcc/i686-linux-gnu/4.8/include-fixed/limits.h \
+ /usr/lib/gcc/i686-linux-gnu/4.8/include-fixed/syslimits.h \
+ /usr/include/limits.h /usr/include/features.h \
+ /usr/include/i386-linux-gnu/sys/cdefs.h \
+ /usr/include/i386-linux-gnu/bits/wordsize.h \
+ /usr/include/i386-linux-gnu/gnu/stubs.h \
+ /usr/include/i386-linux-gnu/gnu/stubs-32.h \
+ /usr/include/i386-linux-gnu/bits/posix1_lim.h \
+ /usr/include/i386-linux-gnu/bits/local_lim.h /usr/include/linux/limits.h \
+ /usr/include/i386-linux-gnu/bits/posix2_lim.h \
+ /usr/include/i386-linux-gnu/bits/xopen_lim.h \
+ /usr/include/i386-linux-gnu/bits/stdio_lim.h m_swap.h \
+ /usr/include/i386-linux-gnu/asm/byteorder.h \
+ /usr/include/linux/byteorder/little_endian.h /usr/include/linux/types.h \
+ /usr/include/i386-linux-gnu/asm/types.h /usr/include/asm-generic/types.h \
+ /usr/include/asm-generic/int-ll64.h \
+ /usr/include/i386-linux-gnu/asm/bitsperlong.h \
+ /usr/include/asm-generic/bitsperlong.h /usr/include/linux/posix_types.h \
+ /usr/include/linux/stddef.h \
+ /usr/include/i386-linux-gnu/asm/posix_types.h \
+ /usr/include/i386-linux-gnu/asm/posix_types_32.h \
+ /usr/include/asm-generic/posix_types.h /usr/include/linux/swab.h \
+ /usr/include/i386-linux-gnu/asm/swab.h lprintf.h
+
+/usr/include/stdc-predef.h:
+
+../config.h:
+
+/usr/lib/gcc/i686-linux-gnu/4.8/include/stddef.h:
+
+w_wad.h:
+
+tables.h:
+
+m_fixed.h:
+
+doomtype.h:
+
+/usr/lib/gcc/i686-linux-gnu/4.8/include-fixed/limits.h:
+
+/usr/lib/gcc/i686-linux-gnu/4.8/include-fixed/syslimits.h:
+
+/usr/include/limits.h:
+
+/usr/include/features.h:
+
+/usr/include/i386-linux-gnu/sys/cdefs.h:
+
+/usr/include/i386-linux-gnu/bits/wordsize.h:
+
+/usr/include/i386-linux-gnu/gnu/stubs.h:
+
+/usr/include/i386-linux-gnu/gnu/stubs-32.h:
+
+/usr/include/i386-linux-gnu/bits/posix1_lim.h:
+
+/usr/include/i386-linux-gnu/bits/local_lim.h:
+
+/usr/include/linux/limits.h:
+
+/usr/include/i386-linux-gnu/bits/posix2_lim.h:
+
+/usr/include/i386-linux-gnu/bits/xopen_lim.h:
+
+/usr/include/i386-linux-gnu/bits/stdio_lim.h:
+
+m_swap.h:
+
+/usr/include/i386-linux-gnu/asm/byteorder.h:
+
+/usr/include/linux/byteorder/little_endian.h:
+
+/usr/include/linux/types.h:
+
+/usr/include/i386-linux-gnu/asm/types.h:
+
+/usr/include/asm-generic/types.h:
+
+/usr/include/asm-generic/int-ll64.h:
+
+/usr/include/i386-linux-gnu/asm/bitsperlong.h:
+
+/usr/include/asm-generic/bitsperlong.h:
+
+/usr/include/linux/posix_types.h:
+
+/usr/include/linux/stddef.h:
+
+/usr/include/i386-linux-gnu/asm/posix_types.h:
+
+/usr/include/i386-linux-gnu/asm/posix_types_32.h:
+
+/usr/include/asm-generic/posix_types.h:
+
+/usr/include/linux/swab.h:
+
+/usr/include/i386-linux-gnu/asm/swab.h:
+
+lprintf.h:

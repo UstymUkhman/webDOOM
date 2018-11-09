@@ -639,7 +639,8 @@ void I_UpdateVideoMode(void)
       init_flags = SDL_DOUBLEBUF;
     else
       init_flags = SDL_SWSURFACE;
-#ifndef _DEBUG
+// #ifndef _DEBUG
+#if !defined(_DEBUG) && !defined(__EMSCRIPTEN__) // emcc build: https://github.com/kripken/boon/commit/edfcb7c24dd0b5f1c60e1f5815c78b2d32729e43
     init_flags |= SDL_HWPALETTE;
 #endif
   }
