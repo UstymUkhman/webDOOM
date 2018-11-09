@@ -1,5 +1,7 @@
 .DS_store
 .libs
+prboom
+prboom-game-server
 *.wad
 *.o
 *.lo
@@ -8,6 +10,7 @@
 *.so
 *.so.[0-9]*
 *.a
+*.Po
 *.pcx
 *.pyc
 *.pyo
@@ -16,6 +19,7 @@
 *.html
 *.wasm
 *.xml
+*.log
 *.desktop
 .*.swp
 *.*.in
