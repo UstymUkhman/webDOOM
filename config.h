@@ -43,7 +43,7 @@
 #define HAVE_LIBM 1
 
 /* Define to 1 if you have the `png' library (-lpng). */
-#define HAVE_LIBPNG 1
+/* #undef HAVE_LIBPNG */
 
 /* Define to 1 if you have the `SDL_mixer' library (-lSDL_mixer). */
 #define HAVE_LIBSDL_MIXER 1
