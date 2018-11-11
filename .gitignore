@@ -18,6 +18,7 @@ prboom-game-server
 *.bc
 *.js
 *.html
+*.data
 *.wasm
 *.xml
 *.log
