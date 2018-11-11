@@ -105,9 +105,7 @@ __inline static fixed_t FixedMul(fixed_t a, fixed_t b)
 inline
 static CONSTFUNC fixed_t FixedMul(fixed_t a, fixed_t b)
 {
-  /* emcc build: remove assembly code
-
-  fixed_t result;
+  /* fixed_t result;
 
   asm (
       "  imull %2 ;"
@@ -181,10 +179,7 @@ inline
 static CONSTFUNC fixed_t FixedDiv(fixed_t a, fixed_t b)
 {
   //e6y: zg is a master of engineer science
-  
-  /* emcc build: remove assembly code
-
-    if ((unsigned)D_abs(a) >> 14 < (unsigned)D_abs(b))
+  /* if ((unsigned)D_abs(a) >> 14 < (unsigned)D_abs(b))
     {
       fixed_t result;
       asm (

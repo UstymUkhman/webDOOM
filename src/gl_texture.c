@@ -44,6 +44,7 @@
 #include <math.h>
 #include <SDL.h>
 #include <SDL_opengl.h>
+#include <GL/glu.h>
 #include "doomtype.h"
 #include "w_wad.h"
 #include "m_argv.h"
@@ -62,10 +63,6 @@
 #include "lprintf.h"
 #include "gl_intern.h"
 #include "gl_struct.h"
-
-#ifdef __EMSCRIPTEN__
-#include <GL/glu.h>
-#endif
 
 /* TEXTURES */
 static GLTexture **gld_GLTextures=NULL;

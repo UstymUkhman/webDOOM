@@ -175,7 +175,7 @@ MIXER_CFLAGS =
 MIXER_LIBS = 
 MKDIR_P = /bin/mkdir -p
 NET_CFLAGS = 
-NET_LIBS = -lSDL_net
+NET_LIBS = 
 OBJEXT = o
 PACKAGE = prboom
 PACKAGE_BUGREPORT = 
@@ -248,7 +248,7 @@ top_srcdir = ..
 SUBDIRS = SDL POSIX MAC
 gamesdir = $(prefix)/games
 prboom_game_server_SOURCES = d_server.c protocol.h
-prboom_game_server_LDADD = POSIX/libposixdoom.a SDL/i_network.o -lSDL_net -L/usr/lib/i386-linux-gnu -lSDL
+prboom_game_server_LDADD = POSIX/libposixdoom.a SDL/i_network.o  -L/usr/lib/i386-linux-gnu -lSDL
 COMMON_SRC = \
  am_map.c       g_game.c           p_maputl.h       r_plane.h   \
  am_map.h       g_game.h           p_mobj.c         r_demo.c    r_segs.c    \
@@ -290,7 +290,7 @@ USE_GL_SRC = gl_intern.h  gl_main.c  gl_struct.h  gl_texture.c
 #WAD_SRC = w_memcache.c
 WAD_SRC = w_mmap.c
 prboom_SOURCES = mmus2mid.c mmus2mid.h $(COMMON_SRC) $(NET_CLIENT_SRC) $(USE_GL_SRC) $(WAD_SRC)
-prboom_LDADD = SDL/libsdldoom.a  -lSDL_net -L/usr/lib/i386-linux-gnu -lSDL -lGL -lGLU 
+prboom_LDADD = SDL/libsdldoom.a   -L/usr/lib/i386-linux-gnu -lSDL -lGL -lGLU 
 EXTRA_DIST = \
  r_drawcolumn.inl r_drawflush.inl r_drawspan.inl r_drawcolpipeline.inl
 

@@ -15,6 +15,7 @@ prboom-game-server
 *.pyc
 *.pyo
 *.rej
+*.bc
 *.js
 *.html
 *.wasm

@@ -49,7 +49,7 @@
 #define HAVE_LIBSDL_MIXER 1
 
 /* Define if you have the SDL net library -lSDL_net */
-#define HAVE_LIBSDL_NET 1
+/* #undef HAVE_LIBSDL_NET */
 
 /* Define to 1 if you have the <memory.h> header file. */
 #define HAVE_MEMORY_H 1
@@ -58,7 +58,7 @@
 #define HAVE_MMAP 1
 
 /* Define if you want network game support */
-#define HAVE_NET 1
+/* #undef HAVE_NET */
 
 /* Define to 1 if you have the <sched.h> header file. */
 #define HAVE_SCHED_H 1
@@ -168,7 +168,7 @@
 #define USE_GLU_MIPMAP 1
 
 /* Define if you want to use the SDL net lib */
-#define USE_SDL_NET 1
+/* #undef USE_SDL_NET */
 
 /* Version number of package */
 #define VERSION "2.5.0"
