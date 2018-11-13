@@ -83,6 +83,8 @@
 #include "lprintf.h"  // jff 08/03/98 - declaration of lprintf
 #include "am_map.h"
 
+#include <emscripten.h>
+
 void GetFirstMap(int *ep, int *map); // Ty 08/29/98 - add "-warp x" functionality
 static void D_PageDrawer(void);
 
@@ -178,9 +180,8 @@ static void D_Wipe(void)
       int nowtime, tics;
       do
         {
-        #ifndef __EMSCRIPTEN__ // emcc build: https://github.com/kripken/boon/commit/b6753b1f3af252105d02ca4e5ab3d7a49bca0a9d
-          I_uSleep(5000); // CPhipps - don't thrash cpu in this loop
-        #endif
+          // emscripten error: prevent `SDL_Delay` call to avoid infinite loop
+          // I_uSleep(5000); // CPhipps - don't thrash cpu in this loop
           nowtime = I_GetTime();
           tics = nowtime - wipestart;
         }
@@ -337,10 +338,7 @@ static const char *auto_shot_fname;
 //  calls I_GetTime, I_StartFrame, and I_StartTic
 //
 
-// static void D_DoomLoop(void) emcc build: https://github.com/kripken/boon/commit/4568d714660cc13940c3ed2798d139c88aec2e40
-//   for (;;)
-//     {
-static void D_DoomLoopIter(void)
+static void D_DoomLoopIteration(void)
 {
       WasRenderedInTryRunTics = false;
       // frame syncronous IO operations
@@ -382,25 +380,12 @@ static void D_DoomLoopIter(void)
   auto_shot_count = auto_shot_time;
   M_DoScreenShot(auto_shot_fname);
       }
-    // }
-  }
+}
 
-  #ifdef __EMSCRIPTEN__ // emcc build: https://github.com/kripken/boon/commit/4568d714660cc13940c3ed2798d139c88aec2e40
-  void D_DoomLoopIterWrapper(void *arg)
-  {
-    D_DoomLoopIter();
-  }
-   #include <emscripten.h>
-  #endif
-   static void D_DoomLoop(void)
-  {
-  #ifdef __EMSCRIPTEN__
-    emscripten_set_main_loop(D_DoomLoopIter, 0, 1);
-    // D_DoomLoopIter(); // call once, will schedule further calls of itself
-    // emscripten_exit_with_live_runtime();
-  #else
-    for (;;) D_DoomLoopIter();
-  #endif
+static void D_DoomLoop(void)
+{
+    // emscripten build: call `D_DoomLoop` with `emscripten_set_main_loop`
+    emscripten_set_main_loop(D_DoomLoopIteration, 0, 1);
 }
 
 //

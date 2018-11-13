@@ -23,5 +23,6 @@ prboom-game-server
 *.xml
 *.log
 *.desktop
+*.*~
 .*.swp
 *.*.in

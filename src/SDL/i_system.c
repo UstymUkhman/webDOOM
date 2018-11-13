@@ -437,7 +437,8 @@ void I_SetAffinityMask(void)
     {
       errbuf = WINError();
     }
-#elif defined(HAVE_SCHED_SETAFFINITY) && !__EMSCRIPTEN__ // emcc build: https://github.com/kripken/boon/commit/4bd6c92d3a6dfc425b4192999f851f81faa7289f
+// emscripten error: implicit declaration of function 'CPU_SET'
+/* #elif defined(HAVE_SCHED_SETAFFINITY)
     // POSIX version:
     int i;
     {
@@ -454,7 +455,7 @@ void I_SetAffinityMask(void)
       {
         errbuf = strerror(errno);
       }
-    }
+    } */
 #else
     return;
 #endif

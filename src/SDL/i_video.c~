@@ -639,10 +639,10 @@ void I_UpdateVideoMode(void)
       init_flags = SDL_DOUBLEBUF;
     else
       init_flags = SDL_SWSURFACE;
+// emscripten error: CopyOnLock is not supported for SDL_LockSurface with SDL_HWPALETTE flag
 // #ifndef _DEBUG
-#if !defined(_DEBUG) && !defined(__EMSCRIPTEN__) // Used for `web-doom` build
-    init_flags |= SDL_HWPALETTE;
-#endif
+    // init_flags |= SDL_HWPALETTE;
+// #endif
   }
 
   if ( desired_fullscreen )

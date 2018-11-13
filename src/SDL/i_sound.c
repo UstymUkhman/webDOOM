@@ -46,9 +46,8 @@
 #include "SDL.h"
 #include "SDL_audio.h"
 #include "SDL_mutex.h"
-#ifndef __EMSCRIPTEN__ // emcc build: https://github.com/kripken/boon/commit/edfcb7c24dd0b5f1c60e1f5815c78b2d32729e43
-#include "SDL_byteorder.h"
-#endif
+// emscripten error: `SDL_byteorder` does not exist
+// #include "SDL_byteorder.h"
 #include "SDL_version.h"
 #ifdef HAVE_MIXER
 #include "SDL_mixer.h"
@@ -69,6 +68,17 @@
 #include "doomtype.h"
 
 #include "d_main.h"
+
+/* #ifdef HAVE_MIXER
+void Mix_SetPostMix(void (*mix_func)
+                    (void *udata, Uint8 *stream, int len), void *arg)
+{
+  Mix_LockAudio();
+  mix_postmix_data = arg;
+  mix_postmix = mix_func;
+  Mix_UnlockAudio();
+}
+#endif */
 
 // The number of internal mixing channels,
 //  the samples calculated for each mixing step,
@@ -587,12 +597,12 @@ char* music_tmp = NULL; /* cph - name of music temporary file */
 void I_ShutdownMusic(void)
 {
 #ifdef HAVE_MIXER
-  if (music_tmp) {
+  /* if (music_tmp) {
     unlink(music_tmp);
     lprintf(LO_DEBUG, "I_ShutdownMusic: removing %s\n", music_tmp);
     free(music_tmp);
-	music_tmp = NULL;
-  }
+    music_tmp = NULL;
+  } */
 #endif
 }
 
@@ -600,8 +610,8 @@ void I_InitMusic(void)
 {
 #ifdef HAVE_MIXER
   if (!music_tmp) {
-#ifndef _WIN32
-    music_tmp = strdup("/tmp/prboom-music-XXXXXX");
+/* #ifndef _WIN32
+    music_tmp = strdup("music.tmp");
     {
       int fd = mkstemp(music_tmp);
       if (fd<0) {
@@ -610,9 +620,10 @@ void I_InitMusic(void)
       } else 
         close(fd);
     }
-#else /* !_WIN32 */
-    music_tmp = strdup("doom.tmp");
-#endif
+#else // !_WIN32
+    music_tmp = strdup("music.tmp");
+#endif */
+    music_tmp = strdup("music.tmp");
     atexit(I_ShutdownMusic);
   }
 #endif
@@ -622,7 +633,11 @@ void I_PlaySong(int handle, int looping)
 {
 #ifdef HAVE_MIXER
   if ( music[handle] ) {
-    Mix_FadeInMusic(music[handle], looping ? -1 : 0, 500);
+    // `Mix_FadeInMusic` is not defined in emscripten's SDL_mixer.
+    // Mix_FadeInMusic(music[handle], looping ? -1 : 0, 500);
+
+    // Using `Mix_PlayMusic` as workaround:
+    Mix_PlayMusic(music[handle], looping ? -1 : 0);
   }
 #endif
 }

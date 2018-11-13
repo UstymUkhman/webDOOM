@@ -54,8 +54,8 @@
 #define TRUE 1
 #define FALSE 0
 
-// #ifndef HAVE_STRLWR
-#if !defined(HAVE_STRLWR) && !__EMSCRIPTEN__ // emcc build: https://github.com/kripken/boon/commit/4bd6c92d3a6dfc425b4192999f851f81faa7289f
+// emscripten error: strlwr(char *) is already defined in `string.h`
+/* #ifndef HAVE_STRLWR
 #include <ctype.h>
 
 static char* strlwr(char* str)
@@ -64,7 +64,7 @@ static char* strlwr(char* str)
   for (p=str; *p; p++) *p = tolower(*p);
   return str;
 }
-#endif
+#endif */
 
 // killough 10/98: new functions, to allow processing DEH files in-memory
 // (e.g. from wads)
