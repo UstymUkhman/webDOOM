@@ -385,9 +385,13 @@ void gld_Init(int width, int height)
   glTexEnvf(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,GL_MODULATE);
 
   glTexGenfv(GL_Q,GL_EYE_PLANE,params);
-  glTexGenf(GL_S,GL_TEXTURE_GEN_MODE,GL_EYE_LINEAR);
-  glTexGenf(GL_T,GL_TEXTURE_GEN_MODE,GL_EYE_LINEAR);
-  glTexGenf(GL_Q,GL_TEXTURE_GEN_MODE,GL_EYE_LINEAR);
+
+  // `glTexGenf`: controls the generation of texture coordinates
+  // emscripten warning: undefined symbol: glTexGenf
+  // glTexGenf(GL_S,GL_TEXTURE_GEN_MODE,GL_EYE_LINEAR);
+  // glTexGenf(GL_T,GL_TEXTURE_GEN_MODE,GL_EYE_LINEAR);
+  // glTexGenf(GL_Q,GL_TEXTURE_GEN_MODE,GL_EYE_LINEAR);
+
   glFogi (GL_FOG_MODE, GL_EXP);
   glFogfv(GL_FOG_COLOR, BlackFogColor);
   glFogf (GL_FOG_DENSITY, (float)fog_density/1000.0f);
