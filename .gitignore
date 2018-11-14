@@ -24,5 +24,6 @@ prboom-game-server
 *.log
 *.desktop
 *.*~
+*.tmp
 .*.swp
 *.*.in

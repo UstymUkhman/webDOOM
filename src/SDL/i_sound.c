@@ -69,17 +69,6 @@
 
 #include "d_main.h"
 
-/* #ifdef HAVE_MIXER
-void Mix_SetPostMix(void (*mix_func)
-                    (void *udata, Uint8 *stream, int len), void *arg)
-{
-  Mix_LockAudio();
-  mix_postmix_data = arg;
-  mix_postmix = mix_func;
-  Mix_UnlockAudio();
-}
-#endif */
-
 // The number of internal mixing channels,
 //  the samples calculated for each mixing step,
 //  the size of the 16bit, 2 hardware channel (stereo)
