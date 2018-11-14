@@ -4,8 +4,3 @@
 
 
 > Work in progress...
-
-### Files to review: ###
-- src/gl_texture.c
-- src/m_fixed.h
-

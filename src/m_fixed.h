@@ -105,6 +105,9 @@ __inline static fixed_t FixedMul(fixed_t a, fixed_t b)
 inline
 static CONSTFUNC fixed_t FixedMul(fixed_t a, fixed_t b)
 {
+  // emscripten error: invalid output constraint '=a' in asm; using default `FixedMul` function:
+  return (fixed_t)((int_64_t) a*b >> FRACBITS);
+
   /* fixed_t result;
 
   asm (
@@ -117,8 +120,6 @@ static CONSTFUNC fixed_t FixedMul(fixed_t a, fixed_t b)
       );
 
   return result; */
-
-  return (fixed_t)((int_64_t) a*b >> FRACBITS);
 }
 # endif /* _MSC_VER */
 
@@ -178,6 +179,9 @@ __inline static fixed_t FixedDiv(fixed_t a, fixed_t b)
 inline
 static CONSTFUNC fixed_t FixedDiv(fixed_t a, fixed_t b)
 {
+  // emscripten error: invalid output constraint '=a' in asm; using default `FixedDiv` function:
+  return ((unsigned)D_abs(a)>>14) >= (unsigned)D_abs(b) ? ((a^b)>>31) ^ INT_MAX : (fixed_t)(((int_64_t) a << FRACBITS) / b);
+
   //e6y: zg is a master of engineer science
   /* if ((unsigned)D_abs(a) >> 14 < (unsigned)D_abs(b))
     {
@@ -193,9 +197,6 @@ static CONSTFUNC fixed_t FixedDiv(fixed_t a, fixed_t b)
       return result;
     }
   return ((a^b)>>31) ^ INT_MAX; */
-
-  return ((unsigned)D_abs(a)>>14) >= (unsigned)D_abs(b) ? ((a^b)>>31) ^ INT_MAX :
-    (fixed_t)(((int_64_t) a << FRACBITS) / b);
 }
 # endif /* _MSC_VER */
 
