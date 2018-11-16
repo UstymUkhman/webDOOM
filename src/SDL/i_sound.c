@@ -586,12 +586,12 @@ char* music_tmp = NULL; /* cph - name of music temporary file */
 void I_ShutdownMusic(void)
 {
 #ifdef HAVE_MIXER
-  /* if (music_tmp) {
+  if (music_tmp) {
     unlink(music_tmp);
     lprintf(LO_DEBUG, "I_ShutdownMusic: removing %s\n", music_tmp);
     free(music_tmp);
     music_tmp = NULL;
-  } */
+  }
 #endif
 }
 
@@ -612,7 +612,10 @@ void I_InitMusic(void)
 #else // !_WIN32
     music_tmp = strdup("music.tmp");
 #endif */
-    music_tmp = strdup("music.tmp");
+
+    // avoid to create dynamically intro menu music
+    // so it can be preloaded with emscripten:
+    music_tmp = strdup("intro.mp3");
     atexit(I_ShutdownMusic);
   }
 #endif
