@@ -299,7 +299,7 @@ default_t defaults[] =
   {"music_volume",{&snd_MusicVolume},{8},0,15, def_int,ss_none},
   {"mus_pause_opt",{&mus_pause_opt},{2},0,2, // CPhipps - music pausing
    def_int, ss_none}, // 0 = kill music when paused, 1 = pause music, 2 = let music continue
-  {"snd_channels",{&default_numChannels},{8},1,32,
+  {"snd_channels",{&default_numChannels},{16},1,32, // ORIGINAL: 8
    def_int,ss_none}, // number of audio events simultaneously // killough
 
   {"Video settings",{NULL},{0},UL,UL,def_none,ss_none},
@@ -380,10 +380,10 @@ default_t defaults[] =
   {"use_mouse",{&usemouse},{1},0,1,
    def_bool,ss_none}, // enables use of mouse with DOOM
   //jff 4/3/98 allow unlimited sensitivity
-  {"mouse_sensitivity_horiz",{&mouseSensitivity_horiz},{10},0,UL,
+  {"mouse_sensitivity_horiz",{&mouseSensitivity_horiz},{12},0,UL,
    def_int,ss_none}, /* adjust horizontal (x) mouse sensitivity killough/mead */
   //jff 4/3/98 allow unlimited sensitivity
-  {"mouse_sensitivity_vert",{&mouseSensitivity_vert},{10},0,UL,
+  {"mouse_sensitivity_vert",{&mouseSensitivity_vert},{12},0,UL,
    def_int,ss_none}, /* adjust vertical (y) mouse sensitivity killough/mead */
   //jff 3/8/98 allow -1 in mouse bindings to disable mouse function
   {"mouseb_fire",{&mousebfire},{0},-1,MAX_MOUSEB,
@@ -400,42 +400,63 @@ default_t defaults[] =
 // CPhipps - now they're the doom codes, so default.cfg can be portable
 
   {"Key bindings",{NULL},{0},UL,UL,def_none,ss_none},
-  {"key_right",       {&key_right},          {KEYD_RIGHTARROW},
+  /* {"key_right",       {&key_right},          {KEYD_RIGHTARROW},
    0,MAX_KEY,def_key,ss_keys}, // key to turn right
-  {"key_left",        {&key_left},           {KEYD_LEFTARROW} ,
+  {"key_left",        {&key_left},           {KEYD_LEFTARROW},
    0,MAX_KEY,def_key,ss_keys}, // key to turn left
-  {"key_up",          {&key_up},             {KEYD_UPARROW}   ,
+  {"key_up",          {&key_up},             {KEYD_UPARROW},
    0,MAX_KEY,def_key,ss_keys}, // key to move forward
   {"key_down",        {&key_down},           {KEYD_DOWNARROW},
+   0,MAX_KEY,def_key,ss_keys}, // key to move backward */
+
+  // Re-map player movement on WASD key
+  // to fit modern gamplay standarts:
+  {"key_right",       {&key_right},          {'d'}            , // {KEYD_D},
+   0,MAX_KEY,def_key,ss_keys}, // key to turn right
+  {"key_left",        {&key_left},           {'a'}            , // {KEYD_A},
+   0,MAX_KEY,def_key,ss_keys}, // key to turn left
+  {"key_up",          {&key_up},             {'w'}            , // {KEYD_W},
+   0,MAX_KEY,def_key,ss_keys}, // key to move forward
+  {"key_down",        {&key_down},           {'s'}            , // {KEYD_S},
    0,MAX_KEY,def_key,ss_keys}, // key to move backward
-  {"key_menu_right",  {&key_menu_right},     {KEYD_RIGHTARROW},// phares 3/7/98
-   0,MAX_KEY,def_key,ss_keys}, // key to move right in a menu  //     |
-  {"key_menu_left",   {&key_menu_left},      {KEYD_LEFTARROW} ,//     V
+  {"key_menu_right",  {&key_menu_right},     {KEYD_RIGHTARROW}, // phares 3/7/98
+   0,MAX_KEY,def_key,ss_keys}, // key to move right in a menu   //     |
+  {"key_menu_left",   {&key_menu_left},      {KEYD_LEFTARROW} , //     V
    0,MAX_KEY,def_key,ss_keys}, // key to move left in a menu
   {"key_menu_up",     {&key_menu_up},        {KEYD_UPARROW}   ,
    0,MAX_KEY,def_key,ss_keys}, // key to move up in a menu
   {"key_menu_down",   {&key_menu_down},      {KEYD_DOWNARROW} ,
    0,MAX_KEY,def_key,ss_keys}, // key to move down in a menu
-  {"key_menu_backspace",{&key_menu_backspace},{KEYD_BACKSPACE} ,
+  {"key_menu_backspace",{&key_menu_backspace},{KEYD_BACKSPACE},
    0,MAX_KEY,def_key,ss_keys}, // delete key in a menu
   {"key_menu_escape", {&key_menu_escape},    {KEYD_ESCAPE}    ,
-   0,MAX_KEY,def_key,ss_keys}, // key to leave a menu      ,   // phares 3/7/98
+   0,MAX_KEY,def_key,ss_keys}, // key to leave a menu           // phares 3/7/98
   {"key_menu_enter",  {&key_menu_enter},     {KEYD_ENTER}     ,
    0,MAX_KEY,def_key,ss_keys}, // key to select from menu
-  {"key_strafeleft",  {&key_strafeleft},     {','}           ,
+
+  // Re-map player 'strafe left' and 'strafe right'
+  // movements on `Q` and `E` keys respectively:
+  {"key_strafeleft",  {&key_strafeleft},     {'q'}            ,
    0,MAX_KEY,def_key,ss_keys}, // key to strafe left
-  {"key_straferight", {&key_straferight},    {'.'}           ,
+  {"key_straferight", {&key_straferight},    {'e'}            ,
    0,MAX_KEY,def_key,ss_keys}, // key to strafe right
 
-  {"key_fire",        {&key_fire},           {KEYD_RCTRL}     ,
-   0,MAX_KEY,def_key,ss_keys}, // duh
-  {"key_use",         {&key_use},            {' '}           ,
+  // Remove useless weapon fire on `Right CTRL`:
+  /* {"key_fire",        {&key_fire},           {KEYD_RCTRL}  ,
+   0,MAX_KEY,def_key,ss_keys}, // duh */
+  {"key_use",         {&key_use},            {' '}            ,
    0,MAX_KEY,def_key,ss_keys}, // key to open a door, use a switch
-  {"key_strafe",      {&key_strafe},         {KEYD_RALT}      ,
-   0,MAX_KEY,def_key,ss_keys}, // key to use with arrows to strafe
-  {"key_speed",       {&key_speed},          {KEYD_RSHIFT}    ,
-   0,MAX_KEY,def_key,ss_keys}, // key to run
 
+  // Re-map player strafe with `WASD` on `Left ALT` key:
+  {"key_strafe",      {&key_strafe},         {KEYD_LALT}      , // {KEYD_RALT}      ,
+   0,MAX_KEY,def_key,ss_keys}, // key to use with arrows to strafe
+  /* {"key_speed",       {&key_speed},          {KEYD_RSHIFT}    ,
+   0,MAX_KEY,def_key,ss_keys}, // key to run */
+
+  // Re-map player run on `Left SHIFT` key
+  // to fit modern gamplay standarts:
+  {"key_speed",       {&key_speed},          {KEYD_LSHIFT}    ,
+   0,MAX_KEY,def_key,ss_keys}, // key to run
   {"key_savegame",    {&key_savegame},       {KEYD_F2}        ,
    0,MAX_KEY,def_key,ss_keys}, // key to save current game
   {"key_loadgame",    {&key_loadgame},       {KEYD_F3}        ,
@@ -458,8 +479,11 @@ default_t defaults[] =
    0,MAX_KEY,def_key,ss_keys}, // key to adjust gamma correction
   {"key_spy",         {&key_spy},            {KEYD_F12}       ,
    0,MAX_KEY,def_key,ss_keys}, // key to view from another coop player's view
-  {"key_pause",       {&key_pause},          {KEYD_PAUSE}     ,
-   0,MAX_KEY,def_key,ss_keys}, // key to pause the game
+
+  // Remove `pause game` functionality because of
+  // `SDL_Delay` call in order to avoid infinite loop:
+  /* {"key_pause",       {&key_pause},          {KEYD_PAUSE}  ,
+   0,MAX_KEY,def_key,ss_keys}, // key to pause the game */
   {"key_autorun",     {&key_autorun},        {KEYD_CAPSLOCK}  ,
    0,MAX_KEY,def_key,ss_keys}, // key to toggle always run mode
   {"key_chat",        {&key_chat},           {'t'}            ,
@@ -502,38 +526,40 @@ default_t defaults[] =
    0,MAX_KEY,def_key,ss_keys}, // key to enlarge display
   {"key_zoomout",     {&key_zoomout},         {'-'}           ,
    0,MAX_KEY,def_key,ss_keys}, // key to reduce display
-  {"key_chatplayer1", {&destination_keys[0]}, {'g'}            ,
+  {"key_chatplayer1", {&destination_keys[0]}, {'g'}           ,
    0,MAX_KEY,def_key,ss_keys}, // key to chat with player 1
   // killough 11/98: fix 'i'/'b' reversal
-  {"key_chatplayer2", {&destination_keys[1]}, {'i'}            ,
+  {"key_chatplayer2", {&destination_keys[1]}, {'i'}           ,
    0,MAX_KEY,def_key,ss_keys}, // key to chat with player 2
-  {"key_chatplayer3", {&destination_keys[2]}, {'b'}            ,
+  {"key_chatplayer3", {&destination_keys[2]}, {'b'}           ,
    0,MAX_KEY,def_key,ss_keys}, // key to chat with player 3
-  {"key_chatplayer4", {&destination_keys[3]}, {'r'}            ,
+  {"key_chatplayer4", {&destination_keys[3]}, {'r'}           ,
    0,MAX_KEY,def_key,ss_keys}, // key to chat with player 4
-  {"key_weapontoggle",{&key_weapontoggle},    {'0'}            ,
+
+  // Re-map weapon toggle on '`' key:
+  {"key_weapontoggle",{&key_weapontoggle},    {'`'}           , // {'0'}           ,
    0,MAX_KEY,def_key,ss_keys}, // key to toggle between two most preferred weapons with ammo
-  {"key_weapon1",     {&key_weapon1},         {'1'}            ,
+  {"key_weapon1",     {&key_weapon1},         {'1'}           ,
    0,MAX_KEY,def_key,ss_keys}, // key to switch to weapon 1 (fist/chainsaw)
-  {"key_weapon2",     {&key_weapon2},         {'2'}            ,
+  {"key_weapon2",     {&key_weapon2},         {'2'}           ,
    0,MAX_KEY,def_key,ss_keys}, // key to switch to weapon 2 (pistol)
-  {"key_weapon3",     {&key_weapon3},         {'3'}            ,
+  {"key_weapon3",     {&key_weapon3},         {'3'}           ,
    0,MAX_KEY,def_key,ss_keys}, // key to switch to weapon 3 (supershotgun/shotgun)
-  {"key_weapon4",     {&key_weapon4},         {'4'}            ,
+  {"key_weapon4",     {&key_weapon4},         {'4'}           ,
    0,MAX_KEY,def_key,ss_keys}, // key to switch to weapon 4 (chaingun)
-  {"key_weapon5",     {&key_weapon5},         {'5'}            ,
+  {"key_weapon5",     {&key_weapon5},         {'5'}           ,
    0,MAX_KEY,def_key,ss_keys}, // key to switch to weapon 5 (rocket launcher)
-  {"key_weapon6",     {&key_weapon6},         {'6'}            ,
+  {"key_weapon6",     {&key_weapon6},         {'6'}           ,
    0,MAX_KEY,def_key,ss_keys}, // key to switch to weapon 6 (plasma rifle)
-  {"key_weapon7",     {&key_weapon7},         {'7'}            ,
+  {"key_weapon7",     {&key_weapon7},         {'7'}           ,
    0,MAX_KEY,def_key,ss_keys}, // key to switch to weapon 7 (bfg9000)         //    ^
-  {"key_weapon8",     {&key_weapon8},         {'8'}            ,
+  {"key_weapon8",     {&key_weapon8},         {'8'}           ,
    0,MAX_KEY,def_key,ss_keys}, // key to switch to weapon 8 (chainsaw)        //    |
-  {"key_weapon9",     {&key_weapon9},         {'9'}            ,
+  {"key_weapon9",     {&key_weapon9},         {'9'}           ,
    0,MAX_KEY,def_key,ss_keys}, // key to switch to weapon 9 (supershotgun)    // phares
 
   // killough 2/22/98: screenshot key
-  {"key_screenshot",  {&key_screenshot},      {'*'}            ,
+  {"key_screenshot",  {&key_screenshot},      {'*'}           ,
    0,MAX_KEY,def_key,ss_keys}, // key to take a screenshot
 
   {"Joystick settings",{NULL},{0},UL,UL,def_none,ss_none},

@@ -523,7 +523,10 @@ void I_InitSound(void)
   }
   sound_inited = true;
   SAMPLECOUNT = audio_buffers;
-  Mix_SetPostMix(I_UpdateSound, NULL);
+  // `Mix_SetPostMix` is not defined in emscripten's SDL_mixer yet.
+  // Since it's not possible to play audios on browser from `.wad`
+  // files, we can avoid `I_UpdateSound` function call:
+  // Mix_SetPostMix(I_UpdateSound, NULL);
   lprintf(LO_INFO," configured audio device with %d samples/slice\n", SAMPLECOUNT);
 #else
   SDL_AudioSpec audio;
