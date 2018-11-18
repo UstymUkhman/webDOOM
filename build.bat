@@ -1,125 +1,15 @@
 #!/bin/bash
-title Compiling Doom
-echo on
+title Building web-doom
+cd build/
+mkdir web
 cls
 
-emcc src/i_main.c             ^
-     src/i_system.c           ^
-     src/m_argv.c             ^
-     src/m_misc.c             ^
-     src/aes_prng.c           ^
-     src/d_event.c            ^
-     src/d_iwad.c             ^
-     src/d_loop.c             ^
-     src/d_mode.c             ^
-     src/deh_str.c            ^
-     src/gusconf.c            ^
-     src/i_cdmus.c            ^
-     src/i_endoom.c           ^
-     src/i_input.c            ^
-     src/i_midipipe.c         ^
-     opl/opl.c                ^
-     opl/opl_linux.c          ^
-     opl/opl_obsd.c           ^
-     opl/opl_queue.c          ^
-     opl/opl_sdl.c            ^
-     opl/opl_timer.c          ^
-     opl/opl_win32.c          ^
-     opl/ioperm_sys.c         ^
-     opl/opl3.c               ^
-     src/i_oplmusic.c         ^
-     src/i_pcsound.c          ^
-     src/i_sdlmusic.c         ^
-     src/i_sdlsound.c         ^
-     src/i_sound.c            ^
-     src/i_timer.c            ^
-     src/i_video.c            ^
-     src/i_videohr.c          ^
-     src/midifile.c           ^
-     src/mus2mid.c            ^
-     src/m_bbox.c             ^
-     src/m_cheat.c            ^
-     src/m_config.c           ^
-     src/m_controls.c         ^
-     src/m_fixed.c            ^
-     src/sha1.c               ^
-     src/memio.c              ^
-     src/tables.c             ^
-     src/v_diskicon.c         ^
-     src/v_video.c            ^
-     src/w_checksum.c         ^
-     src/w_main.c             ^
-     src/w_wad.c              ^
-     src/w_file.c             ^
-     src/w_file_stdc.c        ^
-     src/w_file_posix.c       ^
-     src/w_file_win32.c       ^
-     src/w_merge.c            ^
-     src/z_zone.c             ^
-     src/deh_io.c             ^
-     src/deh_main.c           ^
-     src/deh_mapping.c        ^
-     src/deh_text.c           ^
-     src/am_map.c             ^
-     src/deh_ammo.c           ^
-     src/deh_bexstr.c         ^
-     src/deh_cheat.c          ^
-     src/deh_doom.c           ^
-     src/deh_frame.c          ^
-     src/deh_misc.c           ^
-     src/deh_ptr.c            ^
-     src/deh_sound.c          ^
-     src/deh_thing.c          ^
-     src/deh_weapon.c         ^
-     src/d_items.c            ^
-     src/d_main.c             ^
-     src/d_net.c              ^
-     src/doomdef.c            ^
-     src/doomstat.c           ^
-     src/dstrings.c           ^
-     src/f_finale.c           ^
-     src/f_wipe.c             ^
-     src/g_game.c             ^
-     src/hu_lib.c             ^
-     src/hu_stuff.c           ^
-     src/info.c               ^
-     src/m_menu.c             ^
-     src/m_random.c           ^
-     src/p_ceilng.c           ^
-     src/p_doors.c            ^
-     src/p_enemy.c            ^
-     src/p_floor.c            ^
-     src/p_inter.c            ^
-     src/p_lights.c           ^
-     src/p_map.c              ^
-     src/p_maputl.c           ^
-     src/p_mobj.c             ^
-     src/p_plats.c            ^
-     src/p_pspr.c             ^
-     src/p_saveg.c            ^
-     src/p_setup.c            ^
-     src/p_sight.c            ^
-     src/p_spec.c             ^
-     src/p_switch.c           ^
-     src/p_telept.c           ^
-     src/p_tick.c             ^
-     src/p_user.c             ^
-     src/r_bsp.c              ^
-     src/r_data.c             ^
-     src/r_draw.c             ^
-     src/r_main.c             ^
-     src/r_plane.c            ^
-     src/r_segs.c             ^
-     src/r_sky.c              ^
-     src/r_things.c           ^
-     src/s_sound.c            ^
-     src/sounds.c             ^
-     src/statdump.c           ^
-     src/st_lib.c             ^
-     src/st_stuff.c           ^
-     src/wi_stuff.c           ^
-     -s USE_SDL=2             ^
-     -s ALLOW_MEMORY_GROWTH=1 ^
-     -s ASSERTIONS=1          ^
-     -o doom.html             ^
-     --embed-file doom.wad
+emcc final.bc -o web/web-doom.html ^
+     --preload-file prboom.wad     ^
+     --preload-file doom.wad       ^
+     --preload-file music          ^
+     -s ALLOW_MEMORY_GROWTH=1      ^
+     -s LEGACY_GL_EMULATION=1      ^
+     --no-heap-copy -O3
+
+cd ..
