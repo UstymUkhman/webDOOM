@@ -2,6 +2,8 @@
 .libs
 .deps/*
 .DS_store
+autom4te.cache
+autom4te.cache/*
 
 *.a
 *.o

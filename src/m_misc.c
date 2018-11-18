@@ -436,9 +436,9 @@ default_t defaults[] =
 
   // Re-map player 'strafe left' and 'strafe right'
   // movements on `Q` and `E` keys respectively:
-  {"key_strafeleft",  {&key_strafeleft},     {'q'}            ,
+  {"key_strafeleft",  {&key_strafeleft},     {'q'}            , // {','}      ,
    0,MAX_KEY,def_key,ss_keys}, // key to strafe left
-  {"key_straferight", {&key_straferight},    {'e'}            ,
+  {"key_straferight", {&key_straferight},    {'e'}            , // {'.'}      ,
    0,MAX_KEY,def_key,ss_keys}, // key to strafe right
 
   // Remove useless weapon fire on `Right CTRL`:
@@ -447,16 +447,13 @@ default_t defaults[] =
   {"key_use",         {&key_use},            {' '}            ,
    0,MAX_KEY,def_key,ss_keys}, // key to open a door, use a switch
 
-  // Re-map player strafe with `WASD` on `Left ALT` key:
+  // Re-map player strafe with `WASD` on `Left ALT` and player
+  // run on `Left SHIFT` keys to fit modern gamplay standarts:
   {"key_strafe",      {&key_strafe},         {KEYD_LALT}      , // {KEYD_RALT}      ,
    0,MAX_KEY,def_key,ss_keys}, // key to use with arrows to strafe
-  {"key_speed",       {&key_speed},          {KEYD_RSHIFT}    ,
-   0,MAX_KEY,def_key,ss_keys}, // key to run
+  {"key_speed",       {&key_speed},          {KEYD_LSHIFT}    , // {KEYD_RSHIFT}    ,
 
-  // Re-map player run on `Left SHIFT` key
-  // to fit modern gamplay standarts:
-  /* {"key_speed",       {&key_speed},          {KEYD_LSHIFT} ,
-   0,MAX_KEY,def_key,ss_keys}, // key to run */
+   0,MAX_KEY,def_key,ss_keys}, // key to run
   {"key_savegame",    {&key_savegame},       {KEYD_F2}        ,
    0,MAX_KEY,def_key,ss_keys}, // key to save current game
   {"key_loadgame",    {&key_loadgame},       {KEYD_F3}        ,
@@ -967,7 +964,7 @@ void M_LoadDefaults (void)
 #else
     sprintf ((char *)defaultfile,
 #endif
-            "%s%s%sboom.cfg", exedir, HasTrailingSlash(exedir) ? "" : "/", 
+            "%s%s%sboom.cfg", exedir, HasTrailingSlash(exedir) ? "" : "/",
 #if ((defined GL_DOOM) && (defined _MSC_VER))
             "gl");
 #else

@@ -271,12 +271,12 @@ typedef enum {
 #define KEYD_RSHIFT     (0x80+0x36)
 #define KEYD_RCTRL      (0x80+0x1d)
 #define KEYD_RALT       (0x80+0x38)
-#define KEYD_LALT       KEYD_RALT
 #define KEYD_CAPSLOCK   0xba                                        // phares
 
 // Re-map player run on `Left SHIFT` key
 // to fit modern gamplay standarts:
-#define KEYD_LSHIFT     (0x80+0x2a)
+#define KEYD_LSHIFT     KEYD_RSHIFT
+#define KEYD_LALT       KEYD_RALT
 
 // phares 3/2/98:
 #define KEYD_INSERT     0xd2
