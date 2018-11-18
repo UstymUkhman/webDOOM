@@ -1,5 +1,6 @@
 #!/bin/bash
 
+rm -rf ./build/final.bc
 rm -rf ./build/web
 
 cd ./src/SDL/
@@ -12,8 +13,10 @@ cd ..
 make clean
 make
 
+rm ./build/prboom.wad
 rm ./src/prboom-game-server
 mv ./src/prboom ./build/final.bc
+cp ./data/prboom.wad ./build/prboom.wad
 
 cd ./build/
 mkdir web

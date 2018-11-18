@@ -487,7 +487,7 @@ void S_ChangeMusic(int musicnum, int looping)
     return;
 
   // shutdown old music
-  // S_StopMusic();
+  S_StopMusic();
 
   // get lumpnum if neccessary
   if (!music->lumpnum)

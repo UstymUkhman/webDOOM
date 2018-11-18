@@ -598,30 +598,29 @@ void I_ShutdownMusic(void)
 #endif
 }
 
+// Avoid to create dynamically menu demo music
+// so it can be preloaded with emscripten (e1m5.mp3):
+
 void I_InitMusic(void)
 {
-#ifdef HAVE_MIXER
+/* #ifdef HAVE_MIXER
   if (!music_tmp) {
-/* #ifndef _WIN32
-    music_tmp = strdup("music.tmp");
+#ifndef _WIN32
+    music_tmp = strdup("/tmp/prboom-music-XXXXXX");
     {
       int fd = mkstemp(music_tmp);
       if (fd<0) {
         lprintf(LO_ERROR, "I_InitMusic: failed to create music temp file %s", music_tmp);
         free(music_tmp); return;
-      } else
+      } else 
         close(fd);
     }
 #else // !_WIN32
-    music_tmp = strdup("music.tmp");
-#endif */
-
-    // avoid to create dynamically intro menu music
-    // so it can be preloaded with emscripten:
-    music_tmp = strdup("music/demo.mp3");
+    music_tmp = strdup("doom.tmp");
+#endif
     atexit(I_ShutdownMusic);
   }
-#endif
+#endif */
 }
 
 void I_PlaySong(int handle, int looping)
