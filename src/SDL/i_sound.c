@@ -618,7 +618,7 @@ void I_InitMusic(void)
 
     // avoid to create dynamically intro menu music
     // so it can be preloaded with emscripten:
-    music_tmp = strdup("intro.mp3");
+    music_tmp = strdup("doom.mp3"); // intro.mp3
     atexit(I_ShutdownMusic);
   }
 #endif

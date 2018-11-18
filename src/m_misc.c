@@ -725,7 +725,7 @@ default_t defaults[] =
 
   // cournia - support for arbitrary music file (defaults are mp3)
   {"Music", {NULL},{0},UL,UL,def_none,ss_none},
-  {"mus_e1m1", {0,&S_music_files[mus_e1m1]}, {0,"e1m1.mp3"},UL,UL,
+  {"mus_e1m1", {0,&S_music_files[mus_e1m1]}, {0,"music/e1m1.mp3"},UL,UL,
    def_str,ss_none},
   {"mus_e1m2", {0,&S_music_files[mus_e1m2]}, {0,"e1m2.mp3"},UL,UL,
    def_str,ss_none},
@@ -781,7 +781,7 @@ default_t defaults[] =
    def_str,ss_none},
   {"mus_inter", {0,&S_music_files[mus_inter]}, {0,"e2m3.mp3"},UL,UL,
    def_str,ss_none},
-  {"mus_intro", {0,&S_music_files[mus_intro]}, {0,"intro.mp3"},UL,UL,
+  {"mus_intro", {0,&S_music_files[mus_intro]}, {0,"music/intro.mp3"},UL,UL,
    def_str,ss_none},
   {"mus_bunny", {0,&S_music_files[mus_bunny]}, {0,"bunny.mp3"},UL,UL,
    def_str,ss_none},
