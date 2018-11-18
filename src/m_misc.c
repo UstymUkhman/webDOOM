@@ -436,9 +436,9 @@ default_t defaults[] =
 
   // Re-map player 'strafe left' and 'strafe right'
   // movements on `Q` and `E` keys respectively:
-  {"key_strafeleft",  {&key_strafeleft},     {'q'}            ,
+  {"key_strafeleft",  {&key_strafeleft},     {'q'}            , // {','}      ,
    0,MAX_KEY,def_key,ss_keys}, // key to strafe left
-  {"key_straferight", {&key_straferight},    {'e'}            ,
+  {"key_straferight", {&key_straferight},    {'e'}            , // {'.'}      ,
    0,MAX_KEY,def_key,ss_keys}, // key to strafe right
 
   // Remove useless weapon fire on `Right CTRL`:
@@ -447,15 +447,12 @@ default_t defaults[] =
   {"key_use",         {&key_use},            {' '}            ,
    0,MAX_KEY,def_key,ss_keys}, // key to open a door, use a switch
 
-  // Re-map player strafe with `WASD` on `Left ALT` key:
+  // Re-map player strafe with `WASD` on `Left ALT` and player
+  // run on `Left SHIFT` keys to fit modern gamplay standarts:
   {"key_strafe",      {&key_strafe},         {KEYD_LALT}      , // {KEYD_RALT}      ,
    0,MAX_KEY,def_key,ss_keys}, // key to use with arrows to strafe
-  /* {"key_speed",       {&key_speed},          {KEYD_RSHIFT}    ,
-   0,MAX_KEY,def_key,ss_keys}, // key to run */
+  {"key_speed",       {&key_speed},          {KEYD_LSHIFT}    , // {KEYD_RSHIFT}    ,
 
-  // Re-map player run on `Left SHIFT` key
-  // to fit modern gamplay standarts:
-  {"key_speed",       {&key_speed},          {KEYD_LSHIFT}    ,
    0,MAX_KEY,def_key,ss_keys}, // key to run
   {"key_savegame",    {&key_savegame},       {KEYD_F2}        ,
    0,MAX_KEY,def_key,ss_keys}, // key to save current game
@@ -728,7 +725,7 @@ default_t defaults[] =
 
   // cournia - support for arbitrary music file (defaults are mp3)
   {"Music", {NULL},{0},UL,UL,def_none,ss_none},
-  {"mus_e1m1", {0,&S_music_files[mus_e1m1]}, {0,"e1m1.mp3"},UL,UL,
+  {"mus_e1m1", {0,&S_music_files[mus_e1m1]}, {0,"music/e1m1.mp3"},UL,UL,
    def_str,ss_none},
   {"mus_e1m2", {0,&S_music_files[mus_e1m2]}, {0,"e1m2.mp3"},UL,UL,
    def_str,ss_none},
@@ -784,7 +781,7 @@ default_t defaults[] =
    def_str,ss_none},
   {"mus_inter", {0,&S_music_files[mus_inter]}, {0,"e2m3.mp3"},UL,UL,
    def_str,ss_none},
-  {"mus_intro", {0,&S_music_files[mus_intro]}, {0,"intro.mp3"},UL,UL,
+  {"mus_intro", {0,&S_music_files[mus_intro]}, {0,"music/intro.mp3"},UL,UL,
    def_str,ss_none},
   {"mus_bunny", {0,&S_music_files[mus_bunny]}, {0,"bunny.mp3"},UL,UL,
    def_str,ss_none},
@@ -967,7 +964,7 @@ void M_LoadDefaults (void)
 #else
     sprintf ((char *)defaultfile,
 #endif
-            "%s%s%sboom.cfg", exedir, HasTrailingSlash(exedir) ? "" : "/", 
+            "%s%s%sboom.cfg", exedir, HasTrailingSlash(exedir) ? "" : "/",
 #if ((defined GL_DOOM) && (defined _MSC_VER))
             "gl");
 #else
@@ -1105,3 +1102,4 @@ void M_ScreenShot(void)
   doom_printf ("M_ScreenShot: Couldn't create screenshot");
   return;
 }
+

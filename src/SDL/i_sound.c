@@ -609,7 +609,7 @@ void I_InitMusic(void)
       if (fd<0) {
         lprintf(LO_ERROR, "I_InitMusic: failed to create music temp file %s", music_tmp);
         free(music_tmp); return;
-      } else 
+      } else
         close(fd);
     }
 #else // !_WIN32
@@ -618,7 +618,7 @@ void I_InitMusic(void)
 
     // avoid to create dynamically intro menu music
     // so it can be preloaded with emscripten:
-    music_tmp = strdup("intro.mp3");
+    music_tmp = strdup("music/demo.mp3");
     atexit(I_ShutdownMusic);
   }
 #endif
