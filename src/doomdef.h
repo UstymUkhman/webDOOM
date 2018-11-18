@@ -235,6 +235,16 @@ typedef enum {
 // This is the stuff configured by Setup.Exe.
 // Most key data are simple ascii (uppercased).
 
+// Re-map player movement on WASD key
+// to fit modern gamplay standarts:
+// #define KEYD_W 		119
+// #define KEYD_A 		 97
+// #define KEYD_S 		115
+// #define KEYD_D 		100
+
+// Re-map game pause on `P` key:
+// #define KEYD_P		112
+
 #define KEYD_RIGHTARROW 0xae
 #define KEYD_LEFTARROW  0xac
 #define KEYD_UPARROW    0xad
@@ -263,6 +273,10 @@ typedef enum {
 #define KEYD_RALT       (0x80+0x38)
 #define KEYD_LALT       KEYD_RALT
 #define KEYD_CAPSLOCK   0xba                                        // phares
+
+// Re-map player run on `Left SHIFT` key
+// to fit modern gamplay standarts:
+#define KEYD_LSHIFT     (0x80+0x2a)
 
 // phares 3/2/98:
 #define KEYD_INSERT     0xd2
