@@ -93,6 +93,9 @@ int snd_samplerate=11025;
 // The actual output device.
 int audio_fd;
 
+/*
+ * Original SFX sounds `channel_info_t` struct:
+ *
 typedef struct {
   // SFX id of the playing sound effect.
   // Used to catch duplicates (like chainsaw).
@@ -105,6 +108,7 @@ typedef struct {
 // The channel data pointers, start and end.
   const unsigned char* data;
   const unsigned char* enddata;
+
 // Time/gametic that the channel started playing,
 //  used to determine oldest, which automatically
 //  has lowest priority.
@@ -114,6 +118,20 @@ typedef struct {
   // Hardware left and right channel volume lookup.
   int *leftvol_lookup;
   int *rightvol_lookup;
+} channel_info_t;
+*/
+
+typedef struct {
+  // SFX id of the playing sound effect.
+  // Used to catch duplicates (like chainsaw).
+  int id;
+
+  // Added just to check if this sound is still
+  // playing in `I_SoundIsPlaying` function:
+  boolean isPlaying;
+
+  // SFX chunk used in browser instead of raw data:
+  Mix_Chunk *chunk;
 } channel_info_t;
 
 channel_info_t channelinfo[MAX_CHANNELS];
@@ -131,11 +149,22 @@ int   vol_lookup[128*256];
 
 static void stopchan(int i)
 {
-  if (channelinfo[i].data) /* cph - prevent excess unlocks */
+  // Updated SFX cleanup when building with emscripten:
+  if (channelinfo[i].isPlaying)
+  {
+    Mix_FreeChunk(channelinfo[i].chunk);
+    channelinfo[i].isPlaying = false;
+    channelinfo[i].chunk = NULL;
+
+    W_UnlockLumpNum(S_sfx[channelinfo[i].id].lumpnum);
+  }
+
+  // Original check when stoping SFX sound:
+  /* if (channelinfo[i].data) // cph - prevent excess unlocks
   {
     channelinfo[i].data=NULL;
     W_UnlockLumpNum(S_sfx[channelinfo[i].id].lumpnum);
-  }
+  } */
 }
 
 //
@@ -149,15 +178,26 @@ static int addsfx(int sfxid, int channel, const unsigned char* data, size_t len)
 {
   stopchan(channel);
 
+  // Updated SFX sounds management to fit with
+  // browser's requests when building with emscripten:
+  channelinfo[channel].chunk = Mix_LoadWAV("dspistol.wav");
+  Mix_PlayChannel(-1, channelinfo[channel].chunk, 0);
+  channelinfo[channel].isPlaying = true;
+
+  /*
+   * Original SFX sounds management:
+   *
   channelinfo[channel].data = data;
-  /* Set pointer to end of raw data. */
+  // Set pointer to end of raw data.
   channelinfo[channel].enddata = channelinfo[channel].data + len - 1;
   channelinfo[channel].samplerate = (channelinfo[channel].data[3]<<8)+channelinfo[channel].data[2];
-  channelinfo[channel].data += 8; /* Skip header */
+  channelinfo[channel].data += 8; // Skip header
 
   channelinfo[channel].stepremainder = 0;
   // Should be gametic, I presume.
   channelinfo[channel].starttime = gametic;
+
+  */
 
   // Preserve sound SFX id,
   //  e.g. for avoiding duplicates of chainsaw.
@@ -182,10 +222,12 @@ static void updateSoundParams(int handle, int volume, int seperation, int pitch)
   // to global samplerate for mixing purposes.
   // Patched to shift left *then* divide, to minimize roundoff errors
   // as well as to use SAMPLERATE as defined above, not to assume 11025 Hz
-    if (pitched_sounds)
+    
+    // Original SFX sounds management:
+    /* if (pitched_sounds)
     channelinfo[slot].step = step + (((channelinfo[slot].samplerate<<16)/snd_samplerate)-65536);
     else
-    channelinfo[slot].step = ((channelinfo[slot].samplerate<<16)/snd_samplerate);
+    channelinfo[slot].step = ((channelinfo[slot].samplerate<<16)/snd_samplerate); */
 
     // Separation, that is, orientation/stereo.
     //  range is: 1 - 256
@@ -207,8 +249,10 @@ static void updateSoundParams(int handle, int volume, int seperation, int pitch)
 
     // Get the proper lookup table piece
     //  for this volume level???
-  channelinfo[slot].leftvol_lookup = &vol_lookup[leftvol*256];
-  channelinfo[slot].rightvol_lookup = &vol_lookup[rightvol*256];
+
+  // Original SFX sounds management:
+  // channelinfo[slot].leftvol_lookup = &vol_lookup[leftvol*256];
+  // channelinfo[slot].rightvol_lookup = &vol_lookup[rightvol*256];
 }
 
 void I_UpdateSoundParams(int handle, int volume, int seperation, int pitch)
@@ -348,12 +392,22 @@ boolean I_SoundIsPlaying(int handle)
   if ((handle < 0) || (handle >= MAX_CHANNELS))
     I_Error("I_SoundIsPlaying: handle out of range");
 #endif
-  return channelinfo[handle].data != NULL;
+
+  // Original check if the sound is still playing:
+  // return channelinfo[handle].data != NULL;
+
+  // Added `isPlaying` boolean to `channelinfo`
+  // struct when building with emscripten:
+  return channelinfo[handle].isPlaying;
 }
 
 
 boolean I_AnySoundStillPlaying(void)
 {
+  /*
+   * Original check if any sounds are
+   * still playing before exit the game:
+   *
   boolean result = false;
   int i;
 
@@ -361,6 +415,11 @@ boolean I_AnySoundStillPlaying(void)
     result |= channelinfo[i].data != NULL;
 
   return result;
+  */
+
+  // Don't need that check because
+  // emscripten won't exit the game.
+  return false;
 }
 
 
@@ -376,6 +435,10 @@ boolean I_AnySoundStillPlaying(void)
 // This function currently supports only 16bit.
 //
 
+/*
+ * Avoid original `channelinfo` management in this function because neither
+ * `I_UpdateSound` nor `channelinfo` is used when building with emscripten:
+ *
 static void I_UpdateSound(void *unused, Uint8 *stream, int len)
 {
   // Mix current sound data.
@@ -475,6 +538,7 @@ static void I_UpdateSound(void *unused, Uint8 *stream, int len)
   rightout += step;
     }
 }
+*/
 
 void I_ShutdownSound(void)
 {
@@ -543,7 +607,10 @@ void I_InitSound(void)
 #endif
   audio.channels = 2;
   audio.samples = SAMPLECOUNT*snd_samplerate/11025;
-  audio.callback = I_UpdateSound;
+
+  // Avoid compilation error because `I_UpdateSound`
+  // is commented when building with emscripten:
+  // audio.callback = I_UpdateSound;
   if ( SDL_OpenAudio(&audio, NULL) < 0 ) {
     lprintf(LO_INFO,"couldn't open audio with desired format\n");
     return;
