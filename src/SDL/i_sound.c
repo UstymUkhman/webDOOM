@@ -69,6 +69,9 @@
 
 #include "d_main.h"
 
+// Added to play SFX with emscripten:
+#include "sounds.h"
+
 // The number of internal mixing channels,
 //  the samples calculated for each mixing step,
 //  the size of the 16bit, 2 hardware channel (stereo)
@@ -176,11 +179,16 @@ static void stopchan(int i)
 //
 static int addsfx(int sfxid, int channel, const unsigned char* data, size_t len)
 {
+  char sfx[16];
   stopchan(channel);
+
+  strcpy(sfx, "sfx/ds");
+  strcat(sfx, S_sfx[sfxid].name);
+  strcat(sfx, ".wav");
 
   // Updated SFX sounds management to fit with
   // browser's requests when building with emscripten:
-  channelinfo[channel].chunk = Mix_LoadWAV("dspistol.wav");
+  channelinfo[channel].chunk = Mix_LoadWAV(sfx);
   Mix_PlayChannel(-1, channelinfo[channel].chunk, 0);
   channelinfo[channel].isPlaying = true;
 

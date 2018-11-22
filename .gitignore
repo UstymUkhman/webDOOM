@@ -27,7 +27,7 @@ autom4te.cache/*
 
 *.wad
 *.mp3
-*.midi
+*.wav
 
 *.bc
 *.js
