@@ -312,14 +312,6 @@ void S_StartSoundAtVolume(void *origin_p, int sfx_id, int volume)
 
 void S_StartSound(void *origin, int sfx_id)
 {
-  // We can try here some hack to make sfx sounds work with emscripten.
-  // The easiest thing should be mapping them to MP3 audios by `sfx_id`.
-
-  // To implement this look at:
-  // - `I_RegisterMusic` wich takes the file name (path to mp3 audio)
-  //   and `musicinfo_t` (`&S_music_files` related index) as parameters;
-  // - `I_PlaySong` wich takes currently registered song by `Mix_Music`
-  //   and `1` to loop it or `0` to play it only once as parameters.
   S_StartSoundAtVolume(origin, sfx_id, snd_SfxVolume);
 }
 
