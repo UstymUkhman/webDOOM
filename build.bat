@@ -6,10 +6,10 @@ cls
 
 emcc final.bc -o web/web-doom.html ^
      --preload-file prboom.wad     ^
-     --preload-file doom.wad       ^
+     --preload-file doom2.wad      ^
      --preload-file music          ^
      --preload-file sfx            ^
-     -s ALLOW_MEMORY_GROWTH=1      ^
+     -s TOTAL_MEMORY=32MB          ^
      -s LEGACY_GL_EMULATION=1      ^
      --no-heap-copy -O3
 
