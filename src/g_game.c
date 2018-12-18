@@ -501,7 +501,11 @@ void G_BuildTiccmd(ticcmd_t* cmd)
         dclicks2 = 0;
         dclickstate2 = 0;
       }
-  forward += mousey;
+
+  // Don't want to walk forward
+  // when moving mouse on web:
+  // forward += mousey;
+
   if (strafe)
     side += mousex / 4;       /* mead  Don't want to strafe as fast as turns.*/
   else
