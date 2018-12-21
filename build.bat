@@ -4,13 +4,18 @@ cd build/
 mkdir web
 cls
 
-emcc final.bc -o web/web-doom.html ^
-     --preload-file prboom.wad     ^
-     --preload-file doom.wad       ^
-     --preload-file music          ^
-     --preload-file sfx            ^
-     -s ALLOW_MEMORY_GROWTH=1      ^
-     -s LEGACY_GL_EMULATION=1      ^
+set game=doom1
+
+IF %1%==2 set game=doom2
+IF %1%==doom2 set game=doom2
+
+emcc final.bc -o web/%game%.html ^
+     --preload-file prboom.wad   ^
+     --preload-file %game%.wad   ^
+     --preload-file %game%/music ^
+     --preload-file sfx          ^
+     -s TOTAL_MEMORY=256MB       ^
+     -s LEGACY_GL_EMULATION=1    ^
      --no-heap-copy -O3
 
 cd ..
