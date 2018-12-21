@@ -411,9 +411,9 @@ default_t defaults[] =
 
   // Re-map player movement on WASD key
   // to fit modern gamplay standarts:
-  {"key_right",       {&key_right},          {'d'}            , // {KEYD_D},
+  {"key_right",       {&key_right},          {'e'}            , // {KEYD_D},
    0,MAX_KEY,def_key,ss_keys}, // key to turn right
-  {"key_left",        {&key_left},           {'a'}            , // {KEYD_A},
+  {"key_left",        {&key_left},           {'q'}            , // {KEYD_A},
    0,MAX_KEY,def_key,ss_keys}, // key to turn left
   {"key_up",          {&key_up},             {'w'}            , // {KEYD_W},
    0,MAX_KEY,def_key,ss_keys}, // key to move forward
@@ -435,10 +435,10 @@ default_t defaults[] =
    0,MAX_KEY,def_key,ss_keys}, // key to select from menu
 
   // Re-map player 'strafe left' and 'strafe right'
-  // movements on `Q` and `E` keys respectively:
-  {"key_strafeleft",  {&key_strafeleft},     {'q'}            , // {','}      ,
+  // movements on `A` and `D` keys respectively:
+  {"key_strafeleft",  {&key_strafeleft},     {'a'}            , // {','}      ,
    0,MAX_KEY,def_key,ss_keys}, // key to strafe left
-  {"key_straferight", {&key_straferight},    {'e'}            , // {'.'}      ,
+  {"key_straferight", {&key_straferight},    {'d'}            , // {'.'}      ,
    0,MAX_KEY,def_key,ss_keys}, // key to strafe right
 
   // Remove useless weapon fire on `Right CTRL`:
