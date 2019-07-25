@@ -2,10 +2,10 @@
 
 > **DOOM** and **DOOM II** games compiled for web with [WebAssembly](https://webassembly.org/).
 
-_You can try it [here](http://52.59.223.146/experiments/webDOOM)._
+_You can try it [here](http://54.93.165.244/experiments/webDOOM)._
 
 
-**webDOOM** uses [PrBoom](http://prboom.sourceforge.net/) open source DOOM code, classic game assets like [Doom1.wad](http://www.pc-freak.net/blog/doom-1-doom-2-doom-3-game-wad-files-for-download-playing-doom-on-debian-linux-via-freedoom-open-source-doom-engine/) and [Doom2.wad](http://www.pc-freak.net/blog/doom-1-doom-2-doom-3-game-wad-files-for-download-playing-doom-on-debian-linux-via-freedoom-open-source-doom-engine/) files, original [music](http://www.wolfensteingoodies.com/archives/olddoom/music.htm) in MP3 format and [sound effects](https://archive.org/details/dsbossit) in WAV format.
+**webDOOM** uses [PrBoom](http://prboom.sourceforge.net/) open source **DOOM** code, classic game assets like Doom1.wad and Doom2.wad [files](http://www.pc-freak.net/blog/doom-1-doom-2-doom-3-game-wad-files-for-download-playing-doom-on-debian-linux-via-freedoom-open-source-doom-engine/), original [music](http://www.wolfensteingoodies.com/archives/olddoom/music.htm) in MP3 format and [sound effects](https://archive.org/details/dsbossit) in WAV format.
 
 Big thanks to all sites in links above for providing required assets to make it feel like original games and especially to the WebAssembly comunity that keeps working on [this](http://kripken.github.io/emscripten-site/) amazing tool!
 
