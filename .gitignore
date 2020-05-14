@@ -37,6 +37,7 @@ autom4te.cache/*
 prboom
 prboom-game-server
 
+!public/*
 !build/final.bc
 !data/prboom.wad
 
