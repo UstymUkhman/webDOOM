@@ -78,13 +78,15 @@
     Module.progress = document.getElementById('progress');
     Module.loader = document.getElementById('loader');
     doomCanvas = document.getElementById('doom');
-
+    
     Module.setStatus = getStatus;
     Module.canvas = getCanvas();
 
+    var game = location.href.split('?')[1].split('=')[1];
     var doomScript = document.createElement('script');
+
     document.body.appendChild(doomScript);
     doomScript.type = 'text/javascript';
-    doomScript.src = './doom1.js';
+    doomScript.src = game + '.js';
   });
 })();
