@@ -153,3 +153,41 @@ body {
   background-color: #00CC00;
   color: #000000;
 }
+
+#preview {
+  transition: opacity 0.5s;
+  pointer-events: all;
+  position: absolute;
+  overflow: hidden;
+  
+  height: 100%;
+  width: 100%;
+  z-index: 1;
+}
+
+#preview.hidden {
+  pointer-events: none;
+  opacity: 0;
+}
+
+#preview .doom {
+  background-size: 1920px 1080px;
+  background-position: 50% 50%;
+
+  position: absolute;
+  overflow: hidden;
+  cursor: pointer;
+
+  height: 100%;
+  width: 50%;
+}
+
+#preview .doom.one {
+  background-image: url('img/doom1.jpg');
+  left: 0;
+}
+
+#preview .doom.two {
+  background-image: url('img/doom2.jpg');
+  right: 0;
+}
