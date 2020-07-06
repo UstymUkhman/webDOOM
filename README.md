@@ -9,6 +9,8 @@ _You can try it [here](http://54.93.165.244/experiments/webDOOM)._
 
 Big thanks to all sites in links above for providing required assets to make it feel like original games and especially to the WebAssembly comunity that keeps working on [this](http://kripken.github.io/emscripten-site/) amazing tool!
 
+![](./public/preview.gif)
+
 
 ## Building webDOOM on Debian ##
 
