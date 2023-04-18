@@ -30,7 +30,7 @@ You can build it on your own by following these steps:
 
 - Make sure to have the required [music files](https://github.com/UstymUkhman/webDOOM/blob/master/src/m_misc.c#L725) in [here](https://github.com/UstymUkhman/webDOOM/tree/master/build/doom1/music) (or [here](https://github.com/UstymUkhman/webDOOM/tree/master/build/doom2/music) if you're building *DOOM II*) as well as the [SFX files](https://github.com/UstymUkhman/webDOOM/blob/master/src/sounds.c#L124) (for convenience of downloaded SFX files, their names are preceded by `ds` characters as you can see [here](https://github.com/UstymUkhman/webDOOM/blob/master/src/SDL/i_sound.c#L185)).
 
-- Alternatively, you can build with `-nosound` flag adding it to your Module object as explained [here](https://kripken.github.io/emscripten-site/docs/api_reference/module.html#creating-the-module-object).
+- Alternatively, you can build with `-nosound` flag by adding it to your Module object as explained [here](https://kripken.github.io/emscripten-site/docs/api_reference/module.html#creating-the-module-object).
 
 - With active `emcc` compiler (run `./emsdk activate latest` and `source ./emsdk_env.sh` in your *emsdk* directory), navigate to the root folder of this repo and run `./build.sh` to compile **DOOM** or `./build.sh doom2` to compile **DOOM II**. When running `./build.sh` the first time, it can take a while because `emscripten`'s cache hasn't been set yet, but at the end you should see the `HTML` application in `web` folder [here](https://github.com/UstymUkhman/webDOOM/tree/master/build).
 
