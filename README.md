@@ -1,8 +1,8 @@
-# [webDOOM](http://35.158.218.205/experiments/webDOOM/) #
+# [webDOOM](https://ustymukhman.github.io/webDOOM/public/) #
 
 > **DOOM** and **DOOM II** games compiled for web with [WebAssembly](https://webassembly.org/).
 
-_You can try it [here](http://35.158.218.205/experiments/webDOOM/)._
+_You can try it [here](https://ustymukhman.github.io/webDOOM/public/)._
 
 
 **webDOOM** uses [PrBoom](http://prboom.sourceforge.net/) open source **DOOM** code, classic game assets like Doom1.wad and Doom2.wad [files](http://www.pc-freak.net/blog/doom-1-doom-2-doom-3-game-wad-files-for-download-playing-doom-on-debian-linux-via-freedoom-open-source-doom-engine/), original [music](http://www.wolfensteingoodies.com/archives/olddoom/music.htm) in MP3 format and [sound effects](https://archive.org/details/dsbossit) in WAV format.
