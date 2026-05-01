@@ -1,18 +1,18 @@
-# [webDOOM](https://ustymukhman.github.io/webDOOM/public/) #
+# [WebDOOM](https://ustymukhman.github.io/WebDOOM/public/) #
 
 > **DOOM** and **DOOM II** games compiled for web with [WebAssembly](https://webassembly.org/).
 
-_You can try it [here](https://ustymukhman.github.io/webDOOM/public/)._
+_You can try it [here](https://ustymukhman.github.io/WebDOOM/public/)._
 
 
-**webDOOM** uses [PrBoom](http://prboom.sourceforge.net/) open source **DOOM** code, classic game assets like Doom1.wad and Doom2.wad [files](http://www.pc-freak.net/blog/doom-1-doom-2-doom-3-game-wad-files-for-download-playing-doom-on-debian-linux-via-freedoom-open-source-doom-engine/), original [music](http://www.wolfensteingoodies.com/archives/olddoom/music.htm) in MP3 format and [sound effects](https://archive.org/details/dsbossit) in WAV format.
+**WebDOOM** uses [PrBoom](http://prboom.sourceforge.net/) open source **DOOM** code, classic game assets like Doom1.wad and Doom2.wad [files](http://www.pc-freak.net/blog/doom-1-doom-2-doom-3-game-wad-files-for-download-playing-doom-on-debian-linux-via-freedoom-open-source-doom-engine/), original [music](http://www.wolfensteingoodies.com/archives/olddoom/music.htm) in MP3 format and [sound effects](https://archive.org/details/dsbossit) in WAV format.
 
 Big thanks to all sites in links above for providing required assets to make it feel like original games and especially to the WebAssembly comunity that keeps working on [this](http://kripken.github.io/emscripten-site/) amazing tool!
 
 ![](./public/preview.gif)
 
 
-## Building webDOOM on Debian ##
+## Building WebDOOM on Debian ##
 
 You can build it on your own by following these steps:
 
@@ -26,16 +26,16 @@ You can build it on your own by following these steps:
 
 - Finally, clone this repo.
 
-- Run `./configure` script in the root folded (it can take a while) and when all the `Makefile`s have been created, be sure to set correct compiler paths for `emcc`'s [*CC*](https://github.com/UstymUkhman/webDOOM/blob/master/Makefile#L98); [*CPP*](https://github.com/UstymUkhman/webDOOM/blob/master/Makefile#L101); [*LIBS*](https://github.com/UstymUkhman/webDOOM/blob/master/Makefile#L121); [*RANLIB*](https://github.com/UstymUkhman/webDOOM/blob/master/Makefile#L139) and [*SDL* options](https://github.com/UstymUkhman/webDOOM/blob/master/Makefile#L140-L142) based on the location of `emsdk`'s folder on your machine in **all** `Makefile`s of this repository.
+- Run `./configure` script in the root folded (it can take a while) and when all the `Makefile`s have been created, be sure to set correct compiler paths for `emcc`'s [*CC*](https://github.com/UstymUkhman/WebDOOM/blob/master/Makefile#L98); [*CPP*](https://github.com/UstymUkhman/WebDOOM/blob/master/Makefile#L101); [*LIBS*](https://github.com/UstymUkhman/WebDOOM/blob/master/Makefile#L121); [*RANLIB*](https://github.com/UstymUkhman/WebDOOM/blob/master/Makefile#L139) and [*SDL* options](https://github.com/UstymUkhman/WebDOOM/blob/master/Makefile#L140-L142) based on the location of `emsdk`'s folder on your machine in **all** `Makefile`s of this repository.
 
-- Make sure to have the required [music files](https://github.com/UstymUkhman/webDOOM/blob/master/src/m_misc.c#L725) in [here](https://github.com/UstymUkhman/webDOOM/tree/master/build/doom1/music) (or [here](https://github.com/UstymUkhman/webDOOM/tree/master/build/doom2/music) if you're building *DOOM II*) as well as the [SFX files](https://github.com/UstymUkhman/webDOOM/blob/master/src/sounds.c#L124) (for convenience of downloaded SFX files, their names are preceded by `ds` characters as you can see [here](https://github.com/UstymUkhman/webDOOM/blob/master/src/SDL/i_sound.c#L185)).
+- Make sure to have the required [music files](https://github.com/UstymUkhman/WebDOOM/blob/master/src/m_misc.c#L725) in [here](https://github.com/UstymUkhman/WebDOOM/tree/master/build/doom1/music) (or [here](https://github.com/UstymUkhman/WebDOOM/tree/master/build/doom2/music) if you're building *DOOM II*) as well as the [SFX files](https://github.com/UstymUkhman/WebDOOM/blob/master/src/sounds.c#L124) (for convenience of downloaded SFX files, their names are preceded by `ds` characters as you can see [here](https://github.com/UstymUkhman/WebDOOM/blob/master/src/SDL/i_sound.c#L185)).
 
 - Alternatively, you can build with `-nosound` flag by adding it to your Module object as explained [here](https://kripken.github.io/emscripten-site/docs/api_reference/module.html#creating-the-module-object).
 
-- With active `emcc` compiler (run `./emsdk activate latest` and `source ./emsdk_env.sh` in your *emsdk* directory), navigate to the root folder of this repo and run `./build.sh` to compile **DOOM** or `./build.sh doom2` to compile **DOOM II**. When running `./build.sh` the first time, it can take a while because `emscripten`'s cache hasn't been set yet, but at the end you should see the `HTML` application in `web` folder [here](https://github.com/UstymUkhman/webDOOM/tree/master/build).
+- With active `emcc` compiler (run `./emsdk activate latest` and `source ./emsdk_env.sh` in your *emsdk* directory), navigate to the root folder of this repo and run `./build.sh` to compile **DOOM** or `./build.sh doom2` to compile **DOOM II**. When running `./build.sh` the first time, it can take a while because `emscripten`'s cache hasn't been set yet, but at the end you should see the `HTML` application in `web` folder [here](https://github.com/UstymUkhman/WebDOOM/tree/master/build).
 
 
-### Building webDOOM on Windows ###
+### Building WebDOOM on Windows ###
 
 I was not able to compile PrBoom on Windows because of some issues:
 
@@ -49,4 +49,4 @@ I was not able to compile PrBoom on Windows because of some issues:
 
 - So, even if you'll figure out all the requirements above, you'll find out that unfortunately, `emcc` does not support *MinGW* or *Cygwin* enviroments (at least I faced this problem with v1.38.13) and there's no Windows Subsystem for Linux that emulates an `x32` architecture.
 
-- Despite that, you can install `emscripten`; clone this repo and run `build.bat` (for **DOOM**) or `build.bat doom2` (for **DOOM II**) on Windows that will produce you a valid `HTML` application from [this](https://github.com/UstymUkhman/webDOOM/blob/master/build/final.bc) `LLVM` code.
+- Despite that, you can install `emscripten`; clone this repo and run `build.bat` (for **DOOM**) or `build.bat doom2` (for **DOOM II**) on Windows that will produce you a valid `HTML` application from [this](https://github.com/UstymUkhman/WebDOOM/blob/master/build/final.bc) `LLVM` code.
